@@ -8,7 +8,7 @@ from datetime import datetime
 import streamlit.components.v1 as components
 import plotly.express as px
 
-# ضبط الصفحة لتماثل موقع Google Gemini الرسمي
+# إعداد الصفحة لتطابق واجهة Gemini
 st.set_page_config(
     page_title="Gemini",
     page_icon="✦",
@@ -16,48 +16,42 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# ----------------- تصميم مطابق 100% لواجهة Google Gemini الرسمية -----------------
+# ----------------- تصميم مطابق تماماً لـ Google Gemini -----------------
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700&family=Google+Sans:wght@400;500;700&display=swap');
 
-    /* خلفية Gemini الأصلية السوداء المطاطية */
     body, .stApp {
         background-color: #131314 !important;
         color: #e3e3e3 !important;
         font-family: 'Cairo', 'Google Sans', sans-serif !important;
     }
 
-    /* إخفاء الهيدر والفوتر الخاص بستريمليت مع إبقاء زر القائمة الجانبية (سهم الإعدادات) */
-    header[data-testid="stHeader"] {
-        background-color: transparent !important;
-    }
+    header[data-testid="stHeader"] { background-color: transparent !important; }
     #MainMenu, footer { display: none !important; }
 
-    /* الحاوية الرئيسية في المنتصف بتنسيق مريح تماماً مثل الصورة */
     .main .block-container {
         max-width: 740px !important;
-        padding-top: 2rem !important;
+        padding-top: 1.5rem !important;
         padding-bottom: 7rem !important;
-        padding-left: 1.2rem !important;
-        padding-right: 1.2rem !important;
+        padding-left: 1rem !important;
+        padding-right: 1rem !important;
         margin: 0 auto !important;
     }
 
-    /* ----------------- رسائل الشات بنمط Gemini ----------------- */
+    /* كبسولة رسالة المستخدم */
     .chat-row-user {
         display: flex;
         justify-content: flex-start;
         direction: rtl;
-        margin-bottom: 24px;
+        margin-bottom: 22px;
     }
 
-    /* فقاعة المستخدم: كبسولة رمادية دائرية مثل الصورة بالضبط */
     .gemini-user-pill {
         background-color: #282a2c;
         color: #e3e3e3;
         border-radius: 24px;
-        padding: 10px 22px;
+        padding: 10px 20px;
         font-size: 15px;
         font-weight: 500;
         line-height: 1.6;
@@ -65,14 +59,14 @@ st.markdown("""
         text-align: right;
         display: inline-block;
         max-width: 85%;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+        box-shadow: 0 1px 4px rgba(0,0,0,0.25);
     }
 
-    /* رد الذكاء الاصطناعي: نص حر بدون أي صناديق أو إطارات مثل Gemini الأصلي */
+    /* رد الذكاء الاصطناعي بنمط Gemini الحر */
     .gemini-ai-container {
         direction: rtl;
         text-align: right;
-        margin-bottom: 32px;
+        margin-bottom: 30px;
         color: #e3e3e3;
         font-size: 15.5px;
         line-height: 1.85;
@@ -82,10 +76,9 @@ st.markdown("""
         color: #e3e3e3;
         font-size: 15.5px;
         line-height: 1.85;
-        margin-bottom: 12px;
+        margin-bottom: 10px;
     }
 
-    /* تلوين ناعم للبنود والأرقام بأسلوب Google الناعم */
     .item-highlight {
         color: #a8c7fa !important;
         font-weight: 700;
@@ -99,12 +92,12 @@ st.markdown("""
         display: inline-block;
     }
 
-    /* شريط الأيقونات أسفل الرد (أيقونات Gemini الدقيقة: نسخ، إعادة توليد، صوت) */
+    /* شريط أدوات Gemini الخفيف */
     .gemini-actions {
         display: flex;
         align-items: center;
         gap: 12px;
-        margin-top: 10px;
+        margin-top: 8px;
         direction: ltr;
         justify-content: flex-end;
     }
@@ -114,31 +107,27 @@ st.markdown("""
         border: none;
         color: #8e918f;
         cursor: pointer;
-        padding: 5px;
+        padding: 4px;
         border-radius: 50%;
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 15px;
-        transition: color 0.2s, background 0.2s;
+        font-size: 14px;
+        transition: color 0.2s;
     }
 
-    .gemini-icon-btn:hover {
-        color: #e3e3e3;
-        background: rgba(255, 255, 255, 0.08);
-    }
+    .gemini-icon-btn:hover { color: #e3e3e3; }
 
     .latency-pill {
         font-size: 11px;
         color: #8e918f;
         margin-right: 4px;
-        font-family: sans-serif;
     }
 
-    /* ----------------- صندوق الإدخال السفلي (Gemini Floating Pill) ----------------- */
+    /* صندوق الإدخال العائم */
     .stChatInputContainer {
         position: fixed !important;
-        bottom: 20px !important;
+        bottom: 18px !important;
         left: 50% !important;
         transform: translateX(-50%) !important;
         max-width: 740px !important;
@@ -158,11 +147,6 @@ st.markdown("""
         box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4) !important;
     }
 
-    .stChatInputContainer textarea:focus {
-        border-color: rgba(255, 255, 255, 0.2) !important;
-    }
-
-    /* القائمة الجانبية للإعدادات */
     section[data-testid="stSidebar"] {
         background-color: #1e1f20 !important;
         border-left: 1px solid rgba(255, 255, 255, 0.08) !important;
@@ -170,7 +154,7 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# ----------------- معالجة التنسيق -----------------
+# ----------------- دوال التنسيق -----------------
 def apply_gemini_styling(text):
     if not text: return ""
     text = re.sub(r'\[\[(.*?)\]\]', r'<span class="item-highlight">\1</span>', text)
@@ -195,22 +179,25 @@ def parse_safe_json(raw_text):
 
     return {"answer_arabic": clean, "speech_summary": clean[:80], "chart": None, "mindmap": None}
 
-# ----------------- محرك الذكاء الاصطناعي -----------------
+# ----------------- دالة الاتصال بـ Google Gemini -----------------
 def generate_ai_response(prompt_text, user_api_key):
     from google import genai
     client = genai.Client(api_key=user_api_key)
     models = ['gemini-2.0-flash', 'gemini-2.5-flash', 'gemini-3.8-flash', 'gemini-1.5-pro']
+    
+    last_err = None
     for m in models:
         try:
             t0 = time.time()
             resp = client.models.generate_content(model=m, contents=prompt_text)
             if resp and resp.text:
                 return resp.text, round(time.time() - t0, 1)
-        except Exception:
+        except Exception as err:
+            last_err = err
             continue
-    raise Exception("تعذر الاتصال بالنموذج، يرجى فحص مفتاح API.")
+    raise Exception(f"خطأ في الاتصال: {last_err}")
 
-# ----------------- قراءة ملف ميزانية الإمارات -----------------
+# ----------------- قراءة ميزانية الإمارات -----------------
 df = None
 all_sheets = {}
 default_files = ["ميزانيه السفر للامارات.xlsx", "budget_uae.xlsx", "sample_data.csv"]
@@ -230,14 +217,22 @@ for fname in default_files:
         except Exception:
             continue
 
-# ----------------- سهم الإعدادات الجانبي (Sidebar) -----------------
-api_key = st.secrets.get("GEMINI_API_KEY", "")
+# ----------------- إدارة المفتاح والجلسة بأمان -----------------
+if "api_key" not in st.session_state:
+    st.session_state.api_key = st.secrets.get("GEMINI_API_KEY", "")
+
+# القائمة الجانبية (سهم الإعدادات)
 with st.sidebar:
     st.markdown("### ⚙️ إعدادات Gemini والبيانات")
-    if not api_key:
-        api_key = st.text_input("مفتاح Google Gemini API Key:", type="password", placeholder="AIzaSy...")
-    else:
-        st.success("✅ مفتاح الـ API متصل بنجاح")
+    input_key = st.text_input(
+        "مفتاح Google Gemini API Key:",
+        value=st.session_state.api_key,
+        type="password",
+        placeholder="AIzaSy..."
+    )
+    if input_key != st.session_state.api_key:
+        st.session_state.api_key = input_key
+        st.success("✅ تم حفظ المفتاح")
         
     st.markdown("---")
     if df is not None:
@@ -266,9 +261,9 @@ if "messages" not in st.session_state:
         }
     ]
 
-# ----------------- زر المايكروفون النحيف -----------------
+# ----------------- ودجت الصوت النحيف -----------------
 voice_widget = """
-<div style="direction: rtl; text-align: center; margin-bottom: 20px;">
+<div style="direction: rtl; text-align: center; margin-bottom: 16px;">
     <button id="micBtn" onclick="toggleMic()" style="
         background: #1e1f20;
         border: 1px solid rgba(255, 255, 255, 0.1);
@@ -292,12 +287,12 @@ voice_widget = """
     if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
         const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
         rec = new SR(); rec.lang = 'ar-SA';
-        rec.onstart = () => { document.getElementById('micLabel').innerText = 'جاري الاستماع...'; document.getElementById('micBtn').style.borderColor = '#a8c7fa'; };
+        rec.onstart = () => { document.getElementById('micLabel').innerText = 'نسمع صوتك...'; };
         rec.onresult = (e) => {
             navigator.clipboard.writeText(e.results[0][0].transcript);
             document.getElementById('micStatus').innerText = 'تم نسخ كلامك للصقه في الشات ✓';
         };
-        rec.onend = () => { document.getElementById('micLabel').innerText = 'تحدث بالصوت'; document.getElementById('micBtn').style.borderColor = 'rgba(255,255,255,0.1)'; };
+        rec.onend = () => { document.getElementById('micLabel').innerText = 'تحدث بالصوت'; };
     }
     function toggleMic() {
         if (!rec) { alert('المتصفح لا يدعم المايك'); return; }
@@ -307,12 +302,11 @@ voice_widget = """
 """
 components.html(voice_widget, height=36)
 
-# ----------------- عرض الشات بنمط Gemini الحقيقي -----------------
+# ----------------- عرض رسائل الشات -----------------
 for idx, msg in enumerate(st.session_state.messages):
     msg_id = msg.get("id", idx)
 
     if msg["role"] == "user":
-        # كبسولة سؤال المستخدم تماماً كالصورة
         st.markdown(f"""
         <div class="chat-row-user">
             <div class="gemini-user-pill">
@@ -321,7 +315,6 @@ for idx, msg in enumerate(st.session_state.messages):
         </div>
         """, unsafe_allow_html=True)
     else:
-        # نص إجابة المساعد الحرة تماماً كالصورة بدون صناديق
         clean_text_copy = json.dumps(re.sub(r'<.*?>', '', msg['content']))
         latency_val = msg.get('latency', 0.5)
 
@@ -336,7 +329,6 @@ for idx, msg in enumerate(st.session_state.messages):
         </div>
         """, unsafe_allow_html=True)
 
-        # مشغل الصوت التفاعلي
         if msg.get("speech"):
             spk_str = json.dumps(re.sub(r'<.*?>', '', msg["speech"]))
             components.html(f"""
@@ -352,7 +344,7 @@ for idx, msg in enumerate(st.session_state.messages):
             </script>
             """, height=0)
 
-        # الرسم البياني إن وجد بخلفية Gemini الأصلية
+        # الرسم البياني
         if msg.get("chart") and df is not None:
             c = msg["chart"]
             xc, yc = c.get("x_col"), c.get("y_col")
@@ -375,35 +367,32 @@ for idx, msg in enumerate(st.session_state.messages):
             </script>
             """, height=280)
 
-        # زر إعادة الرد
-        if msg.get("raw_query"):
-            if st.button("🔄 إعادة الرد", key=f"rg_{msg_id}"):
-                st.session_state.run_q = msg["raw_query"]
-                st.session_state.messages = [m for m in st.session_state.messages if m.get("id") != msg_id]
-                st.rerun()
-
-# ----------------- صندوق الإدخال بنمط كبسولة Gemini -----------------
+# ----------------- استقبال وتوليد الرد فوراً بدون توقف -----------------
 user_input = st.chat_input("اسأل Gemini عن ميزانية السفر للإمارات ✦")
 
-to_run = None
 if user_input:
-    to_run = user_input
-elif "run_q" in st.session_state:
-    to_run = st.session_state.run_q
-    del st.session_state.run_q
+    # 1. إضافة سؤال المستخدم فوراً للذاكرة
+    st.session_state.messages.append({
+        "id": len(st.session_state.messages),
+        "role": "user",
+        "content": user_input
+    })
 
-if to_run:
-    if not any(m["role"] == "user" and m["content"] == to_run for m in st.session_state.messages[-1:]):
+    # 2. التحقق من وجود مفتاح الـ API
+    if not st.session_state.api_key:
         st.session_state.messages.append({
             "id": len(st.session_state.messages),
-            "role": "user",
-            "content": to_run
+            "role": "assistant",
+            "content": "⚠️ يرجى إدخال مفتاح الـ API من سهم الإعدادات الجانبي للبدء في الإجابة.",
+            "speech": "يرجى إدخال مفتاح الـ API من سهم الإعدادات الجانبي.",
+            "latency": 0.0,
+            "chart": None,
+            "mindmap": None,
+            "raw_query": user_input
         })
         st.rerun()
-
-    if not api_key:
-        st.warning("يرجى إدخال مفتاح الـ API من سهم الإعدادات الجانبي.")
     else:
+        # 3. استدعاء الذكاء الاصطناعي مباشرة دون Rerun مسبق يضيع الإدخال
         with st.spinner("..."):
             try:
                 summary_parts = []
@@ -419,18 +408,18 @@ if to_run:
                 history_text = "\n".join(hist)
 
                 prompt = f"""
-أنت Gemini، مساعد ذكي وخبير في ميزانية السفر للإمارات.
+أنت Gemini، مساعد ذكي ومحلل لميزانية السفر للإمارات.
 بيانات الميزانية:
 {data_summary}
 
 المحادثة السابقة:
 {history_text}
 
-السؤال: "{to_run}"
+السؤال: "{user_input}"
 
-قواعد التلوين البسيطة:
-- أي اسم بند أو عمود: ضعه بين [[اسم البند]] (سيصبح بلون أزرق هادئ).
-- أي رقم أو معادلة: ضعه بين {{{{الرقم أو المعادلة}}}} (سيصبح بلون أخضر هادئ).
+قواعد التلوين:
+- أي اسم بند أو عمود: ضعه بين [[اسم البند]] (سيصبح أزرق).
+- أي رقم أو معادلة: ضعه بين {{{{الرقم أو المعادلة}}}} (سيصبح أخضر).
 
 أجب حصراً بـ JSON نظيف:
 {{
@@ -440,7 +429,7 @@ if to_run:
     "mindmap": {{ "has_mindmap": false, "mermaid_code": "" }}
 }}
 """
-                raw_ans, latency = generate_ai_response(prompt, api_key)
+                raw_ans, latency = generate_ai_response(prompt, st.session_state.api_key)
                 parsed = parse_safe_json(raw_ans)
 
                 st.session_state.messages.append({
@@ -451,9 +440,20 @@ if to_run:
                     "latency": latency,
                     "chart": parsed.get("chart") if parsed.get("chart", {}).get("has_chart") else None,
                     "mindmap": parsed.get("mindmap") if parsed.get("mindmap", {}).get("has_mindmap") else None,
-                    "raw_query": to_run
+                    "raw_query": user_input
                 })
-                st.rerun()
 
             except Exception as e:
-                st.error(f"خطأ: {e}")
+                st.session_state.messages.append({
+                    "id": len(st.session_state.messages),
+                    "role": "assistant",
+                    "content": f"حدث خطأ أثناء معالجة السؤال: {e}",
+                    "speech": "",
+                    "latency": 0.0,
+                    "chart": None,
+                    "mindmap": None,
+                    "raw_query": user_input
+                })
+
+        # 4. تحديث الصفحة بعد اكتمال الإجابة لعرضها فوراً
+        st.rerun()
