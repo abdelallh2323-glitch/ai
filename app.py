@@ -61,7 +61,7 @@ st.markdown("""
         flex-direction: column;
         align-items: flex-start;
         direction: rtl;
-        margin-bottom: 22px;
+        margin-bottom: 20px;
     }
 
     .gemini-user-pill {
@@ -110,7 +110,7 @@ st.markdown("""
         align-items: center;
         gap: 12px;
         margin-top: 4px;
-        margin-bottom: 22px;
+        margin-bottom: 20px;
         direction: rtl;
     }
 
@@ -153,18 +153,8 @@ st.markdown("""
         pointer-events: none;
     }
 
-    /* صندوق الإدخال السفلي المثبت في قاع الصفحة */
-    div[data-testid="stChatInput"], .stChatInput, .stChatInputContainer {
-        position: fixed !important;
-        bottom: 18px !important;
-        left: 50% !important;
-        transform: translateX(-50%) !important;
-        max-width: 740px !important;
-        width: calc(100% - 24px) !important;
-        z-index: 999 !important;
-    }
-
-    div[data-testid="stChatInput"] textarea, .stChatInput textarea, .stChatInputContainer textarea {
+    /* صندوق الإدخال السفلي */
+    div[data-testid="stChatInput"] textarea {
         background-color: #1e1f20 !important;
         border: 1px solid rgba(255, 255, 255, 0.08) !important;
         border-radius: 28px !important;
@@ -193,6 +183,7 @@ def apply_gemini_styling(text):
     if not text: return ""
     text = re.sub(r'\[\[(.*?)\]\]', r'<span class="item-highlight">\1</span>', text)
     text = re.sub(r'\{\{(.*?)\}\}', r'<span class="calc-highlight">\1</span>', text)
+    text = re.sub(r'\*\*(.*?)\*\*', r'<strong>\1</strong>', text)
     return text
 
 def parse_safe_json(raw_text):
@@ -256,7 +247,13 @@ all_sheets = {}
 active_file_name = "لا يوجد ملف"
 
 if "api_key" not in st.session_state:
-    st.session_state.api_key = st.secrets.get("GEMINI_API_KEY", "")
+    stored_key = ""
+    try:
+        if hasattr(st, "secrets") and "GEMINI_API_KEY" in st.secrets:
+            stored_key = st.secrets["GEMINI_API_KEY"]
+    except Exception:
+        stored_key = ""
+    st.session_state.api_key = stored_key
 
 with st.sidebar:
     st.markdown("### ⚙️ إعدادات Gemini والبيانات")
@@ -335,12 +332,13 @@ if "messages" not in st.session_state or len(st.session_state.messages) == 0:
 
 # ----------------- شريط الحالة العلوي -----------------
 num_rows = len(df) if df is not None else 0
-st.markdown(f"""
-<div class="top-meta-bar">
-    <div style="color: #a8c7fa; font-weight: 600;">📁 الملف الحالي: {active_file_name}</div>
-    <div style="font-size: 12px; color: #8e918f;">{num_rows} صف • Gemini ✦</div>
-</div>
-""", unsafe_allow_html=True)
+st.markdown(
+    f'<div class="top-meta-bar">'
+    f'<div style="color: #a8c7fa; font-weight: 600;">📁 الملف الحالي: {active_file_name}</div>'
+    f'<div style="font-size: 12px; color: #8e918f;">{num_rows} صف • Gemini ✦</div>'
+    f'</div>',
+    unsafe_allow_html=True
+)
 
 # ----------------- عرض رسائل الشات -----------------
 for idx, msg in enumerate(st.session_state.messages):
@@ -351,18 +349,17 @@ for idx, msg in enumerate(st.session_state.messages):
         u_time = msg.get('time', now_time)
         clean_user_txt = html.escape(u_content, quote=True)
 
-        st.markdown(f"""
-        <div class="chat-row-user">
-            <div class="gemini-user-pill" id="user_pill_{msg_id}">{u_content}</div>
-            <div class="action-bar-container">
-                <span class="meta-time-text">{u_time}</span>
-                <div class="action-icons-group">
-                    <button type="button" class="gemini-svg-btn gemini-copy-btn" data-text="{clean_user_txt}" title="نسخ">{SVG_COPY}</button>
-                    <button type="button" class="gemini-svg-btn gemini-edit-btn" data-id="{msg_id}" data-text="{clean_user_txt}" title="تحرير السؤال">{SVG_EDIT}</button>
-                </div>
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
+        user_html = (
+            f'<div class="chat-row-user">'
+            f'<div class="gemini-user-pill" id="user_pill_{msg_id}">{u_content}</div>'
+            f'<div class="action-bar-container">'
+            f'<span class="meta-time-text">{u_time}</span>'
+            f'<div class="action-icons-group">'
+            f'<button type="button" class="gemini-svg-btn gemini-copy-btn" data-text="{clean_user_txt}" title="نسخ">{SVG_COPY}</button>'
+            f'<button type="button" class="gemini-svg-btn gemini-edit-btn" data-id="{msg_id}" data-text="{clean_user_txt}" title="تحرير السؤال">{SVG_EDIT}</button>'
+            f'</div></div></div>'
+        )
+        st.markdown(user_html, unsafe_allow_html=True)
 
     else:
         ai_time = msg.get('time', now_time)
@@ -373,16 +370,16 @@ for idx, msg in enumerate(st.session_state.messages):
 
         regen_btn_html = f'<button type="button" class="gemini-svg-btn gemini-regen-btn" data-query="{clean_raw_q}" title="إعادة بناء الرد">{SVG_REGEN}</button>' if raw_q else ''
 
-        st.markdown(f"""
-        <div class="gemini-ai-text">{msg['content']}</div>
-        <div class="action-bar-container">
-            <span class="meta-time-text">{ai_time} • {latency_val} ثانية</span>
-            <div class="action-icons-group">
-                <button type="button" class="gemini-svg-btn gemini-copy-btn" data-text="{clean_ai_txt}" title="نسخ الإجابة">{SVG_COPY}</button>
-                {regen_btn_html}
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
+        ai_html = (
+            f'<div class="gemini-ai-text">{msg["content"]}</div>'
+            f'<div class="action-bar-container">'
+            f'<span class="meta-time-text">{ai_time} • {latency_val} ثانية</span>'
+            f'<div class="action-icons-group">'
+            f'<button type="button" class="gemini-svg-btn gemini-copy-btn" data-text="{clean_ai_txt}" title="نسخ الإجابة">{SVG_COPY}</button>'
+            f'{regen_btn_html}'
+            f'</div></div>'
+        )
+        st.markdown(ai_html, unsafe_allow_html=True)
 
         # الرسم البياني إن وجد
         if msg.get("chart") and df is not None:
@@ -420,11 +417,14 @@ interactive_engine = """
         }
         if (!pdoc) return;
 
-        // منع تكرار ربط المستمع في نافذة الـ parent
-        if (pdoc.__gemini_event_delegation_active) return;
-        pdoc.__gemini_event_delegation_active = true;
+        // إزالة أي مستمع قديم من دورة رندر سابقة لتفادي مشكلة الـ Dead Iframe Context
+        if (pdoc._gemini_click_handler) {
+            try {
+                pdoc.removeEventListener('click', pdoc._gemini_click_handler, true);
+            } catch(err) {}
+        }
 
-        pdoc.addEventListener('click', function(e) {
+        pdoc._gemini_click_handler = function(e) {
             // 1. زر النسخ المباشر
             const copyBtn = e.target.closest('.gemini-copy-btn');
             if (copyBtn) {
@@ -472,7 +472,7 @@ interactive_engine = """
 
                 pill.innerHTML = `
                     <div style="width: 100%; direction: rtl; text-align: right; margin-top: 4px;">
-                        <textarea id="inline_edit_ta_${msgId}" style="width: 100%; min-height: 70px; background: #1e1f20; color: #e3e3e3; border: 1.5px solid #a8c7fa; border-radius: 14px; padding: 10px 14px; font-family: 'Cairo', sans-serif; font-size: 14.5px; outline: none; resize: vertical; box-sizing: border-box; line-height: 1.6;">${safeOriginal}</textarea>
+                        <textarea id="inline_edit_ta_${msgId}" style="width: 100%; min-height: 65px; background: #1e1f20; color: #e3e3e3; border: 1.5px solid #a8c7fa; border-radius: 14px; padding: 10px 14px; font-family: 'Cairo', sans-serif; font-size: 14.5px; outline: none; resize: vertical; box-sizing: border-box; line-height: 1.6;">${safeOriginal}</textarea>
                         <div style="display: flex; gap: 8px; justify-content: flex-end; margin-top: 8px;">
                             <button id="cancel_edit_btn_${msgId}" type="button" style="background: transparent; border: 1px solid rgba(255,255,255,0.2); color: #c4c7c5; padding: 5px 14px; border-radius: 18px; font-size: 12.5px; cursor: pointer; font-family: 'Cairo', sans-serif;">إلغاء</button>
                             <button id="save_edit_btn_${msgId}" type="button" style="background: #a8c7fa; border: none; color: #040e1e; padding: 5px 16px; border-radius: 18px; font-size: 12.5px; font-weight: 700; cursor: pointer; font-family: 'Cairo', sans-serif;">حفظ وإرسال ✦</button>
@@ -523,13 +523,14 @@ interactive_engine = """
                 }
                 return;
             }
-        }, true);
+        };
+
+        pdoc.addEventListener('click', pdoc._gemini_click_handler, true);
 
         function sendQueryToStreamlit(textToSend) {
             const textarea = pdoc.querySelector('textarea[data-testid="stChatInputTextArea"]') ||
                              pdoc.querySelector('[data-testid="stChatInput"] textarea') ||
                              pdoc.querySelector('.stChatInput textarea') ||
-                             pdoc.querySelector('.stChatInputContainer textarea') ||
                              pdoc.querySelector('textarea');
             if (!textarea) return;
 
@@ -551,9 +552,7 @@ interactive_engine = """
 
             setTimeout(() => {
                 const sendBtn = pdoc.querySelector('button[data-testid="stChatInputSubmitButton"]') ||
-                                pdoc.querySelector('[data-testid="stChatInput"] button') ||
-                                pdoc.querySelector('.stChatInput button') ||
-                                pdoc.querySelector('.stChatInputContainer button');
+                                pdoc.querySelector('[data-testid="stChatInput"] button');
 
                 if (sendBtn && !sendBtn.disabled) {
                     sendBtn.click();
