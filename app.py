@@ -448,7 +448,7 @@ for idx, msg in enumerate(st.session_state.messages):
             """, height=280)
 
 # ----------------- زر المايكروفون المنقول إلى الأسفل بجوار شريط السؤال -----------------
-bottom_mic_html = f"""
+bottom_mic_html = """
 <div class="bottom-mic-dock">
     <button id="dockMicBtn" onclick="toggleDockMic()" style="
         background: #1e1f20;
@@ -464,7 +464,7 @@ bottom_mic_html = f"""
         box-shadow: 0 2px 10px rgba(0,0,0,0.4);
         transition: all 0.2s;
     " title="تحدث بالصوت">
-        {SVG_MIC}
+        __SVG_MIC__
     </button>
 </div>
 <script>
@@ -491,7 +491,7 @@ bottom_mic_html = f"""
         if (!dIsRec) { dRec.start(); dIsRec = true; } else { dRec.stop(); dIsRec = false; }
     }
 </script>
-"""
+""".replace("__SVG_MIC__", SVG_MIC)
 components.html(bottom_mic_html, height=45)
 
 # ----------------- شريط السؤال السفلي مع زر الإرسال المدمج -----------------
