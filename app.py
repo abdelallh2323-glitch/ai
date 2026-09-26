@@ -88,7 +88,7 @@ st.markdown("""
         margin-bottom: 6px;
     }
 
-    /* التمييز اللوني */
+    /* التمييز اللوني الراقي للبيانات */
     .item-highlight {
         color: #a8c7fa !important;
         font-weight: 700;
@@ -102,21 +102,21 @@ st.markdown("""
         display: inline-block;
     }
 
-    /* شريط الأيقونات والتوقيت (فيكتور صافي وبدون أي مربعات أو إطارات) */
+    /* شريط الأيقونات والتوقيت المدمج بدون أي مربعات */
     .action-bar-container {
         display: flex;
         align-items: center;
         gap: 12px;
-        margin-top: 6px;
-        margin-bottom: 24px;
+        margin-top: 4px;
+        margin-bottom: 22px;
         direction: rtl;
     }
 
     .meta-time-text {
-        font-size: 11px;
+        font-size: 11.5px;
         color: #727775;
         direction: rtl;
-        font-family: sans-serif;
+        font-family: 'Cairo', sans-serif;
     }
 
     .action-icons-group {
@@ -126,30 +126,34 @@ st.markdown("""
         direction: ltr;
     }
 
-    /* أيقونات فيكتور نقية تماماً مثل Gemini */
-    .gemini-svg-btn {
+    /* روابط الأيقونات الفيكتور النقية تماماً بدون أي حدود أو خلفيات */
+    a.gemini-svg-btn {
+        text-decoration: none !important;
+        color: #8e918f !important;
         background: transparent !important;
         border: none !important;
-        outline: none !important;
-        color: #8e918f !important;
-        cursor: pointer !important;
-        padding: 3px 5px !important;
-        border-radius: 4px !important;
         display: inline-flex !important;
         align-items: center !important;
         justify-content: center !important;
-        box-shadow: none !important;
-        transition: color 0.15s ease, transform 0.15s ease !important;
+        padding: 3px 6px !important;
+        border-radius: 6px !important;
+        cursor: pointer !important;
+        transition: color 0.15s ease, background 0.15s ease !important;
     }
 
-    .gemini-svg-btn:hover {
+    a.gemini-svg-btn:hover {
         color: #e3e3e3 !important;
         background: rgba(255, 255, 255, 0.08) !important;
-        transform: scale(1.08);
     }
 
-    .gemini-svg-btn svg {
-        pointer-events: none;
+    /* صندوق تعديل السؤال داخل الرسالة */
+    .edit-box-container {
+        background: #1e1f20;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 16px;
+        padding: 12px;
+        margin: 8px 0 16px 0;
+        direction: rtl;
     }
 
     /* صندوق الإدخال السفلي المثبت */
@@ -182,7 +186,7 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# ----------------- أيقونات فيكتور SVG مرسومة بدقة متناهية (Outlines) -----------------
+# ----------------- أيقونات فيكتور SVG مرسومة فاخرة (Outlines) -----------------
 SVG_COPY = '''<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>'''
 SVG_REGEN = '''<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/></svg>'''
 SVG_EDIT = '''<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>'''
@@ -218,7 +222,7 @@ def generate_ai_response(prompt_text, user_api_key):
     clean_key = user_api_key.strip()
     client = genai.Client(api_key=clean_key)
     
-    # استكشاف النماذج النشطة والمفتوحة في حساب المستخدم
+    # 1. استكشاف النماذج النشطة في حساب المستخدم الفعلي لتفادي خطأ 404
     available_models = []
     try:
         for m in client.models.list():
@@ -314,6 +318,37 @@ with st.sidebar:
         st.markdown(f"**الملف النشط: {active_file_name}** ({len(df)} صف)")
         st.dataframe(df.head(10), use_container_width=True)
 
+# ----------------- معالجة أوامر الأزرار عبر الرابط (بدون أي تعليق) -----------------
+# 1. فحص أمر إعادة الرد
+if "action" in st.query_params and st.query_params["action"] == "regen":
+    try:
+        r_id = int(st.query_params.get("id", 0))
+        for i, m in enumerate(st.session_state.get("messages", [])):
+            if m.get("id") == r_id and m.get("raw_query"):
+                # استخراج السؤال وحذف الإجابة القديمة
+                st.session_state.pending_prompt = m["raw_query"]
+                st.session_state.messages.pop(i)
+                break
+    except Exception:
+        pass
+    st.query_params.clear()
+    st.rerun()
+
+# 2. فحص أمر تعديل السؤال
+if "action" in st.query_params and st.query_params["action"] == "edit":
+    try:
+        e_id = int(st.query_params.get("id", 0))
+        st.session_state.editing_msg_id = e_id
+    except Exception:
+        pass
+    st.query_params.clear()
+    st.rerun()
+
+# 3. فحص أمر النسخ
+if "action" in st.query_params and st.query_params["action"] == "copy":
+    st.toast("📋 تم تحديد النص للنسخ")
+    st.query_params.clear()
+
 # ----------------- تهيئة ذاكرة الشات -----------------
 now_time = datetime.now().strftime("%I:%M %p").replace("AM", "ص").replace("PM", "م")
 
@@ -349,39 +384,64 @@ for idx, msg in enumerate(st.session_state.messages):
     if msg["role"] == "user":
         u_content = msg['content']
         u_time = msg.get('time', now_time)
-        clean_user_txt = u_content.replace('"', '&quot;').replace('\n', ' ')
 
-        # كبسولة السؤال وشريط الأيقونات تحته مباشرة
-        st.markdown(f"""
-        <div class="chat-row-user">
-            <div class="gemini-user-pill">{u_content}</div>
-            <div class="action-bar-container">
-                <span class="meta-time-text">{u_time}</span>
-                <div class="action-icons-group">
-                    <button class="gemini-svg-btn copy-btn" data-copy="{clean_user_txt}" title="نسخ السؤال">{SVG_COPY}</button>
-                    <button class="gemini-svg-btn edit-btn" data-query="{clean_user_txt}" title="تعديل السؤال">{SVG_EDIT}</button>
+        # التحقق مما إذا كان المستخدم يحرر هذا السؤال حالياً
+        if st.session_state.get("editing_msg_id") == msg_id:
+            st.markdown('<div class="edit-box-container">', unsafe_allow_html=True)
+            st.markdown(f"**✏️ تعديل السؤال ({u_time}):**")
+            edited_text = st.text_area(
+                "عدل سؤالك هنا:",
+                value=u_content,
+                key=f"edit_area_{msg_id}",
+                label_visibility="collapsed"
+            )
+            col_save, col_cancel = st.columns([1, 1])
+            with col_save:
+                if st.button("حفظ وإرسال ✦", key=f"btn_save_{msg_id}", use_container_width=True):
+                    # 1. تحديث نص السؤال
+                    msg['content'] = edited_text
+                    # 2. حذف الردود السابقة التي تلي هذا السؤال ليبدأ الرد الجديد من هذه النقطة
+                    st.session_state.messages = st.session_state.messages[:idx + 1]
+                    # 3. إلغاء وضع التعديل
+                    st.session_state.editing_msg_id = None
+                    # 4. إرسال السؤال الجديد للنموذج
+                    st.session_state.pending_prompt = edited_text
+                    st.rerun()
+            with col_cancel:
+                if st.button("إلغاء", key=f"btn_cancel_{msg_id}", use_container_width=True):
+                    st.session_state.editing_msg_id = None
+                    st.rerun()
+            st.markdown('</div>', unsafe_allow_html=True)
+        else:
+            # كبسولة السؤال العادية مع أيقونات النسخ والتحرير
+            st.markdown(f"""
+            <div class="chat-row-user">
+                <div class="gemini-user-pill">{u_content}</div>
+                <div class="action-bar-container">
+                    <span class="meta-time-text">{u_time}</span>
+                    <div class="action-icons-group">
+                        <a href="?action=copy&id={msg_id}" target="_self" class="gemini-svg-btn" title="نسخ">{SVG_COPY}</a>
+                        <a href="?action=edit&id={msg_id}" target="_self" class="gemini-svg-btn" title="تحرير السؤال">{SVG_EDIT}</a>
+                    </div>
                 </div>
             </div>
-        </div>
-        """, unsafe_allow_html=True)
+            """, unsafe_allow_html=True)
 
     else:
         ai_time = msg.get('time', now_time)
         latency_val = msg.get('latency', 0.4)
-        raw_q = msg.get('raw_query', '')
-        clean_ai_txt = re.sub(r'<.*?>', '', msg['content']).replace('"', '&quot;').replace('\n', ' ')
-        clean_raw_q = (raw_q or "").replace('"', '&quot;').replace('\n', ' ')
+        raw_q = msg.get('raw_query')
 
-        # إجابة الذكاء الاصطناعي الحرة وشريط الأيقونات تحتها
-        regen_button_html = f'<button class="gemini-svg-btn regen-btn" data-query="{clean_raw_q}" title="إعادة الرد">{SVG_REGEN}</button>' if raw_q else ''
-        
+        # إجابة الذكاء الاصطناعي مع أيقونات النسخ وإعادة الرد
+        regen_link = f'<a href="?action=regen&id={msg_id}" target="_self" class="gemini-svg-btn" title="إعادة التفكير وبناء الرد">{SVG_REGEN}</a>' if raw_q else ''
+
         st.markdown(f"""
         <div class="gemini-ai-text">{msg['content']}</div>
         <div class="action-bar-container">
             <span class="meta-time-text">{ai_time} • {latency_val} ثانية</span>
             <div class="action-icons-group">
-                <button class="gemini-svg-btn copy-btn" data-copy="{clean_ai_txt}" title="نسخ الإجابة">{SVG_COPY}</button>
-                {regen_button_html}
+                <a href="?action=copy&id={msg_id}" target="_self" class="gemini-svg-btn" title="نسخ">{SVG_COPY}</a>
+                {regen_link}
             </div>
         </div>
         """, unsafe_allow_html=True)
@@ -409,98 +469,27 @@ for idx, msg in enumerate(st.session_state.messages):
             </script>
             """, height=280)
 
-# ----------------- مشغل الأوامر التفاعلي الذكي للأيقونات (نسخ، تحرير، إعادة رد) -----------------
-interactive_js = """
-<script>
-(function() {
-    const pdoc = window.parent.document;
-    if (!pdoc) return;
-
-    // 1. تشغيل زر النسخ
-    pdoc.querySelectorAll('.copy-btn').forEach(btn => {
-        if (btn.dataset.bound) return;
-        btn.dataset.bound = "true";
-        btn.addEventListener('click', (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            const text = btn.getAttribute('data-copy');
-            if (!text) return;
-            
-            const ta = pdoc.createElement('textarea');
-            ta.value = text;
-            ta.style.position = 'fixed';
-            ta.style.opacity = '0';
-            pdoc.body.appendChild(ta);
-            ta.select();
-            try {
-                pdoc.execCommand('copy');
-                const orig = btn.innerHTML;
-                btn.innerHTML = '<span style="color:#6dd58c; font-size:11px; font-weight:700;">✓</span>';
-                setTimeout(() => { btn.innerHTML = orig; }, 1500);
-            } catch (err) {}
-            pdoc.body.removeChild(ta);
-        });
-    });
-
-    // 2. تشغيل زر التحرير (ينقل السؤال لصندوق الكتابة فوراً)
-    pdoc.querySelectorAll('.edit-btn').forEach(btn => {
-        if (btn.dataset.bound) return;
-        btn.dataset.bound = "true";
-        btn.addEventListener('click', (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            const q = btn.getAttribute('data-query');
-            const textarea = pdoc.querySelector('.stChatInputContainer textarea');
-            if (textarea && q) {
-                const nativeSetter = Object.getOwnPropertyDescriptor(window.parent.HTMLTextAreaElement.prototype, "value").set;
-                nativeSetter.call(textarea, q);
-                textarea.dispatchEvent(new Event('input', { bubbles: true }));
-                textarea.focus();
-                textarea.scrollIntoView({ behavior: 'smooth' });
-            }
-        });
-    });
-
-    // 3. تشغيل زر إعادة الرد (يكتب السؤال في الصندوق ويرسله فوراً)
-    pdoc.querySelectorAll('.regen-btn').forEach(btn => {
-        if (btn.dataset.bound) return;
-        btn.dataset.bound = "true";
-        btn.addEventListener('click', (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            const q = btn.getAttribute('data-query');
-            const textarea = pdoc.querySelector('.stChatInputContainer textarea');
-            if (textarea && q) {
-                const nativeSetter = Object.getOwnPropertyDescriptor(window.parent.HTMLTextAreaElement.prototype, "value").set;
-                nativeSetter.call(textarea, q);
-                textarea.dispatchEvent(new Event('input', { bubbles: true }));
-                
-                setTimeout(() => {
-                    const sendBtn = pdoc.querySelector('.stChatInputContainer button');
-                    if (sendBtn) {
-                        sendBtn.click();
-                    }
-                }, 150);
-            }
-        });
-    });
-})();
-</script>
-"""
-components.html(interactive_js, height=0)
-
-# ----------------- شريط السؤال السفلي -----------------
+# ----------------- استقبال وتوليد الأسئلة -----------------
 user_input = st.chat_input(placeholder="اسأل Gemini عن أي معلومة في بياناتك ✦")
 
+active_prompt = None
 if user_input:
+    active_prompt = user_input
+elif "pending_prompt" in st.session_state and st.session_state.pending_prompt:
+    active_prompt = st.session_state.pending_prompt
+    del st.session_state.pending_prompt
+
+if active_prompt:
     current_time_str = datetime.now().strftime("%I:%M %p").replace("AM", "ص").replace("PM", "م")
     
-    st.session_state.messages.append({
-        "id": len(st.session_state.messages),
-        "role": "user",
-        "content": user_input,
-        "time": current_time_str
-    })
+    # إضافة السؤال إلى المحادثة إذا لم يكن مضافاً بالفعل
+    if not any(m["role"] == "user" and m["content"] == active_prompt for m in st.session_state.messages[-1:]):
+        st.session_state.messages.append({
+            "id": len(st.session_state.messages),
+            "role": "user",
+            "content": active_prompt,
+            "time": current_time_str
+        })
 
     if not st.session_state.api_key:
         st.session_state.messages.append({
@@ -511,11 +500,11 @@ if user_input:
             "latency": 0.0,
             "chart": None,
             "mindmap": None,
-            "raw_query": user_input
+            "raw_query": active_prompt
         })
         st.rerun()
     else:
-        with st.spinner("..."):
+        with st.spinner("Gemini يفكر في الإجابة ويحلل البيانات..."):
             try:
                 summary_parts = []
                 for s_name, s_df in all_sheets.items():
@@ -537,7 +526,7 @@ if user_input:
 المحادثة السابقة:
 {history_text}
 
-سؤال المستخدم: "{user_input}"
+سؤال المستخدم: "{active_prompt}"
 
 قواعد التلوين:
 - أي اسم عمود أو بند: ضعه بين [[اسم البند]] (سيتحول تلقائياً إلى اللون الأزرق السماوي).
@@ -561,7 +550,7 @@ if user_input:
                     "latency": latency,
                     "chart": parsed.get("chart") if parsed.get("chart", {}).get("has_chart") else None,
                     "mindmap": parsed.get("mindmap") if parsed.get("mindmap", {}).get("has_mindmap") else None,
-                    "raw_query": user_input
+                    "raw_query": active_prompt
                 })
 
             except Exception as e:
@@ -573,7 +562,7 @@ if user_input:
                     "latency": 0.0,
                     "chart": None,
                     "mindmap": None,
-                    "raw_query": user_input
+                    "raw_query": active_prompt
                 })
 
         st.rerun()
