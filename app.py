@@ -4,6 +4,7 @@ import json
 import os
 import re
 import time
+import html
 from datetime import datetime
 import streamlit.components.v1 as components
 import plotly.express as px
@@ -16,7 +17,7 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# ----------------- تصميم Gemini الراقي بالأيقونات الفيكتور وبدون أي مربعات -----------------
+# ----------------- تصميم Gemini الداكن الراقي بالأيقونات الفيكتور وبدون أي ريفريش -----------------
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700&family=Google+Sans:wght@400;500;700&display=swap');
@@ -76,6 +77,7 @@ st.markdown("""
         display: inline-block;
         max-width: 85%;
         box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+        transition: all 0.2s ease;
     }
 
     /* نص إجابة الذكاء الاصطناعي بنمط Gemini الحر */
@@ -126,38 +128,33 @@ st.markdown("""
         direction: ltr;
     }
 
-    /* روابط الأيقونات الفيكتور النقية تماماً بدون أي حدود أو خلفيات */
-    a.gemini-svg-btn {
-        text-decoration: none !important;
-        color: #8e918f !important;
+    /* أزرار الأيقونات الفيكتور النقية بدون أي حدود أو إطارات مربعة */
+    .gemini-svg-btn {
         background: transparent !important;
         border: none !important;
+        color: #8e918f !important;
         display: inline-flex !important;
         align-items: center !important;
         justify-content: center !important;
-        padding: 3px 6px !important;
+        padding: 4px 6px !important;
         border-radius: 6px !important;
         cursor: pointer !important;
+        box-shadow: none !important;
+        outline: none !important;
         transition: color 0.15s ease, background 0.15s ease !important;
     }
 
-    a.gemini-svg-btn:hover {
+    .gemini-svg-btn:hover {
         color: #e3e3e3 !important;
         background: rgba(255, 255, 255, 0.08) !important;
     }
 
-    /* صندوق تعديل السؤال داخل الرسالة */
-    .edit-box-container {
-        background: #1e1f20;
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        border-radius: 16px;
-        padding: 12px;
-        margin: 8px 0 16px 0;
-        direction: rtl;
+    .gemini-svg-btn svg {
+        pointer-events: none;
     }
 
-    /* صندوق الإدخال السفلي المثبت */
-    .stChatInputContainer {
+    /* صندوق الإدخال السفلي المثبت في قاع الصفحة */
+    div[data-testid="stChatInput"], .stChatInput, .stChatInputContainer {
         position: fixed !important;
         bottom: 18px !important;
         left: 50% !important;
@@ -167,7 +164,7 @@ st.markdown("""
         z-index: 999 !important;
     }
 
-    .stChatInputContainer textarea {
+    div[data-testid="stChatInput"] textarea, .stChatInput textarea, .stChatInputContainer textarea {
         background-color: #1e1f20 !important;
         border: 1px solid rgba(255, 255, 255, 0.08) !important;
         border-radius: 28px !important;
@@ -222,7 +219,6 @@ def generate_ai_response(prompt_text, user_api_key):
     clean_key = user_api_key.strip()
     client = genai.Client(api_key=clean_key)
     
-    # 1. استكشاف النماذج النشطة في حساب المستخدم الفعلي لتفادي خطأ 404
     available_models = []
     try:
         for m in client.models.list():
@@ -318,37 +314,6 @@ with st.sidebar:
         st.markdown(f"**الملف النشط: {active_file_name}** ({len(df)} صف)")
         st.dataframe(df.head(10), use_container_width=True)
 
-# ----------------- معالجة أوامر الأزرار عبر الرابط (بدون أي تعليق) -----------------
-# 1. فحص أمر إعادة الرد
-if "action" in st.query_params and st.query_params["action"] == "regen":
-    try:
-        r_id = int(st.query_params.get("id", 0))
-        for i, m in enumerate(st.session_state.get("messages", [])):
-            if m.get("id") == r_id and m.get("raw_query"):
-                # استخراج السؤال وحذف الإجابة القديمة
-                st.session_state.pending_prompt = m["raw_query"]
-                st.session_state.messages.pop(i)
-                break
-    except Exception:
-        pass
-    st.query_params.clear()
-    st.rerun()
-
-# 2. فحص أمر تعديل السؤال
-if "action" in st.query_params and st.query_params["action"] == "edit":
-    try:
-        e_id = int(st.query_params.get("id", 0))
-        st.session_state.editing_msg_id = e_id
-    except Exception:
-        pass
-    st.query_params.clear()
-    st.rerun()
-
-# 3. فحص أمر النسخ
-if "action" in st.query_params and st.query_params["action"] == "copy":
-    st.toast("📋 تم تحديد النص للنسخ")
-    st.query_params.clear()
-
 # ----------------- تهيئة ذاكرة الشات -----------------
 now_time = datetime.now().strftime("%I:%M %p").replace("AM", "ص").replace("PM", "م")
 
@@ -377,71 +342,44 @@ st.markdown(f"""
 </div>
 """, unsafe_allow_html=True)
 
-# ----------------- عرض رسائل الشات بالأيقونات الفيكتور وبدون أي مربعات -----------------
+# ----------------- عرض رسائل الشات -----------------
 for idx, msg in enumerate(st.session_state.messages):
     msg_id = msg.get("id", idx)
 
     if msg["role"] == "user":
         u_content = msg['content']
         u_time = msg.get('time', now_time)
+        clean_user_txt = html.escape(u_content, quote=True)
 
-        # التحقق مما إذا كان المستخدم يحرر هذا السؤال حالياً
-        if st.session_state.get("editing_msg_id") == msg_id:
-            st.markdown('<div class="edit-box-container">', unsafe_allow_html=True)
-            st.markdown(f"**✏️ تعديل السؤال ({u_time}):**")
-            edited_text = st.text_area(
-                "عدل سؤالك هنا:",
-                value=u_content,
-                key=f"edit_area_{msg_id}",
-                label_visibility="collapsed"
-            )
-            col_save, col_cancel = st.columns([1, 1])
-            with col_save:
-                if st.button("حفظ وإرسال ✦", key=f"btn_save_{msg_id}", use_container_width=True):
-                    # 1. تحديث نص السؤال
-                    msg['content'] = edited_text
-                    # 2. حذف الردود السابقة التي تلي هذا السؤال ليبدأ الرد الجديد من هذه النقطة
-                    st.session_state.messages = st.session_state.messages[:idx + 1]
-                    # 3. إلغاء وضع التعديل
-                    st.session_state.editing_msg_id = None
-                    # 4. إرسال السؤال الجديد للنموذج
-                    st.session_state.pending_prompt = edited_text
-                    st.rerun()
-            with col_cancel:
-                if st.button("إلغاء", key=f"btn_cancel_{msg_id}", use_container_width=True):
-                    st.session_state.editing_msg_id = None
-                    st.rerun()
-            st.markdown('</div>', unsafe_allow_html=True)
-        else:
-            # كبسولة السؤال العادية مع أيقونات النسخ والتحرير
-            st.markdown(f"""
-            <div class="chat-row-user">
-                <div class="gemini-user-pill">{u_content}</div>
-                <div class="action-bar-container">
-                    <span class="meta-time-text">{u_time}</span>
-                    <div class="action-icons-group">
-                        <a href="?action=copy&id={msg_id}" target="_self" class="gemini-svg-btn" title="نسخ">{SVG_COPY}</a>
-                        <a href="?action=edit&id={msg_id}" target="_self" class="gemini-svg-btn" title="تحرير السؤال">{SVG_EDIT}</a>
-                    </div>
+        st.markdown(f"""
+        <div class="chat-row-user">
+            <div class="gemini-user-pill" id="user_pill_{msg_id}">{u_content}</div>
+            <div class="action-bar-container">
+                <span class="meta-time-text">{u_time}</span>
+                <div class="action-icons-group">
+                    <button type="button" class="gemini-svg-btn gemini-copy-btn" data-text="{clean_user_txt}" title="نسخ">{SVG_COPY}</button>
+                    <button type="button" class="gemini-svg-btn gemini-edit-btn" data-id="{msg_id}" data-text="{clean_user_txt}" title="تحرير السؤال">{SVG_EDIT}</button>
                 </div>
             </div>
-            """, unsafe_allow_html=True)
+        </div>
+        """, unsafe_allow_html=True)
 
     else:
         ai_time = msg.get('time', now_time)
         latency_val = msg.get('latency', 0.4)
-        raw_q = msg.get('raw_query')
+        raw_q = msg.get('raw_query', '')
+        clean_ai_txt = html.escape(re.sub(r'<.*?>', '', msg['content']), quote=True)
+        clean_raw_q = html.escape(raw_q or "", quote=True)
 
-        # إجابة الذكاء الاصطناعي مع أيقونات النسخ وإعادة الرد
-        regen_link = f'<a href="?action=regen&id={msg_id}" target="_self" class="gemini-svg-btn" title="إعادة التفكير وبناء الرد">{SVG_REGEN}</a>' if raw_q else ''
+        regen_btn_html = f'<button type="button" class="gemini-svg-btn gemini-regen-btn" data-query="{clean_raw_q}" title="إعادة بناء الرد">{SVG_REGEN}</button>' if raw_q else ''
 
         st.markdown(f"""
         <div class="gemini-ai-text">{msg['content']}</div>
         <div class="action-bar-container">
             <span class="meta-time-text">{ai_time} • {latency_val} ثانية</span>
             <div class="action-icons-group">
-                <a href="?action=copy&id={msg_id}" target="_self" class="gemini-svg-btn" title="نسخ">{SVG_COPY}</a>
-                {regen_link}
+                <button type="button" class="gemini-svg-btn gemini-copy-btn" data-text="{clean_ai_txt}" title="نسخ الإجابة">{SVG_COPY}</button>
+                {regen_btn_html}
             </div>
         </div>
         """, unsafe_allow_html=True)
@@ -469,27 +407,190 @@ for idx, msg in enumerate(st.session_state.messages):
             </script>
             """, height=280)
 
+# ----------------- مشغل التفاعل اللحظي (Zero-Refresh Event Controller) -----------------
+interactive_engine = """
+<script>
+(function() {
+    function initGeminiEngine() {
+        let pdoc;
+        try {
+            pdoc = window.parent.document;
+        } catch (e) {
+            pdoc = null;
+        }
+        if (!pdoc) return;
+
+        // منع تكرار ربط المستمع في نافذة الـ parent
+        if (pdoc.__gemini_event_delegation_active) return;
+        pdoc.__gemini_event_delegation_active = true;
+
+        pdoc.addEventListener('click', function(e) {
+            // 1. زر النسخ المباشر
+            const copyBtn = e.target.closest('.gemini-copy-btn');
+            if (copyBtn) {
+                e.preventDefault();
+                e.stopPropagation();
+                const text = copyBtn.getAttribute('data-text');
+                if (!text) return;
+
+                function showDone() {
+                    const orig = copyBtn.innerHTML;
+                    copyBtn.innerHTML = '<span style="color:#6dd58c; font-size:12px; font-weight:bold; font-family:Cairo,sans-serif;">تم النسخ ✓</span>';
+                    setTimeout(() => { copyBtn.innerHTML = orig; }, 1400);
+                }
+
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    navigator.clipboard.writeText(text).then(showDone).catch(fallback);
+                } else {
+                    fallback();
+                }
+
+                function fallback() {
+                    const ta = pdoc.createElement('textarea');
+                    ta.value = text;
+                    ta.style.position = 'fixed';
+                    ta.style.opacity = '0';
+                    pdoc.body.appendChild(ta);
+                    ta.select();
+                    try { pdoc.execCommand('copy'); showDone(); } catch(err) {}
+                    pdoc.body.removeChild(ta);
+                }
+                return;
+            }
+
+            // 2. زر تحرير السؤال الفوري في مكانه
+            const editBtn = e.target.closest('.gemini-edit-btn');
+            if (editBtn) {
+                e.preventDefault();
+                e.stopPropagation();
+                const msgId = editBtn.getAttribute('data-id');
+                const pill = pdoc.getElementById('user_pill_' + msgId);
+                if (!pill || pill.querySelector('textarea')) return;
+
+                const originalText = pill.innerText.trim();
+                const safeOriginal = originalText.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+                pill.innerHTML = `
+                    <div style="width: 100%; direction: rtl; text-align: right; margin-top: 4px;">
+                        <textarea id="inline_edit_ta_${msgId}" style="width: 100%; min-height: 70px; background: #1e1f20; color: #e3e3e3; border: 1.5px solid #a8c7fa; border-radius: 14px; padding: 10px 14px; font-family: 'Cairo', sans-serif; font-size: 14.5px; outline: none; resize: vertical; box-sizing: border-box; line-height: 1.6;">${safeOriginal}</textarea>
+                        <div style="display: flex; gap: 8px; justify-content: flex-end; margin-top: 8px;">
+                            <button id="cancel_edit_btn_${msgId}" type="button" style="background: transparent; border: 1px solid rgba(255,255,255,0.2); color: #c4c7c5; padding: 5px 14px; border-radius: 18px; font-size: 12.5px; cursor: pointer; font-family: 'Cairo', sans-serif;">إلغاء</button>
+                            <button id="save_edit_btn_${msgId}" type="button" style="background: #a8c7fa; border: none; color: #040e1e; padding: 5px 16px; border-radius: 18px; font-size: 12.5px; font-weight: 700; cursor: pointer; font-family: 'Cairo', sans-serif;">حفظ وإرسال ✦</button>
+                        </div>
+                    </div>
+                `;
+
+                const ta = pill.querySelector('#inline_edit_ta_' + msgId);
+                if (ta) {
+                    ta.focus();
+                    ta.setSelectionRange(ta.value.length, ta.value.length);
+                }
+
+                const cancelBtn = pill.querySelector('#cancel_edit_btn_' + msgId);
+                if (cancelBtn) {
+                    cancelBtn.onclick = (ev) => {
+                        ev.preventDefault();
+                        ev.stopPropagation();
+                        pill.innerText = originalText;
+                    };
+                }
+
+                const saveBtn = pill.querySelector('#save_edit_btn_' + msgId);
+                if (saveBtn) {
+                    saveBtn.onclick = (ev) => {
+                        ev.preventDefault();
+                        ev.stopPropagation();
+                        const newQuery = ta ? ta.value.trim() : '';
+                        if (!newQuery) return;
+                        pill.innerText = newQuery;
+                        sendQueryToStreamlit(newQuery);
+                    };
+                }
+                return;
+            }
+
+            // 3. زر إعادة توليد الرد الفوري
+            const regenBtn = e.target.closest('.gemini-regen-btn');
+            if (regenBtn) {
+                e.preventDefault();
+                e.stopPropagation();
+                const query = regenBtn.getAttribute('data-query');
+                if (query) {
+                    const orig = regenBtn.innerHTML;
+                    regenBtn.innerHTML = '<span style="color:#a8c7fa; font-size:11px; font-family:Cairo,sans-serif;">جارٍ التوليد...</span>';
+                    setTimeout(() => { regenBtn.innerHTML = orig; }, 2500);
+                    sendQueryToStreamlit(query);
+                }
+                return;
+            }
+        }, true);
+
+        function sendQueryToStreamlit(textToSend) {
+            const textarea = pdoc.querySelector('textarea[data-testid="stChatInputTextArea"]') ||
+                             pdoc.querySelector('[data-testid="stChatInput"] textarea') ||
+                             pdoc.querySelector('.stChatInput textarea') ||
+                             pdoc.querySelector('.stChatInputContainer textarea') ||
+                             pdoc.querySelector('textarea');
+            if (!textarea) return;
+
+            textarea.focus();
+            const proto = window.parent.HTMLTextAreaElement ? window.parent.HTMLTextAreaElement.prototype : HTMLTextAreaElement.prototype;
+            const nativeSetter = Object.getOwnPropertyDescriptor(proto, "value").set;
+            if (nativeSetter) {
+                nativeSetter.call(textarea, textToSend);
+            } else {
+                textarea.value = textToSend;
+            }
+
+            if (textarea._valueTracker) {
+                textarea._valueTracker.setValue("");
+            }
+
+            textarea.dispatchEvent(new Event('input', { bubbles: true }));
+            textarea.dispatchEvent(new Event('change', { bubbles: true }));
+
+            setTimeout(() => {
+                const sendBtn = pdoc.querySelector('button[data-testid="stChatInputSubmitButton"]') ||
+                                pdoc.querySelector('[data-testid="stChatInput"] button') ||
+                                pdoc.querySelector('.stChatInput button') ||
+                                pdoc.querySelector('.stChatInputContainer button');
+
+                if (sendBtn && !sendBtn.disabled) {
+                    sendBtn.click();
+                } else {
+                    textarea.dispatchEvent(new KeyboardEvent('keydown', {
+                        key: 'Enter',
+                        code: 'Enter',
+                        keyCode: 13,
+                        which: 13,
+                        bubbles: true
+                    }));
+                }
+            }, 180);
+        }
+    }
+
+    initGeminiEngine();
+    if (document.readyState !== 'complete') {
+        window.addEventListener('load', initGeminiEngine);
+    }
+})();
+</script>
+"""
+components.html(interactive_engine, height=0)
+
 # ----------------- استقبال وتوليد الأسئلة -----------------
 user_input = st.chat_input(placeholder="اسأل Gemini عن أي معلومة في بياناتك ✦")
 
-active_prompt = None
 if user_input:
-    active_prompt = user_input
-elif "pending_prompt" in st.session_state and st.session_state.pending_prompt:
-    active_prompt = st.session_state.pending_prompt
-    del st.session_state.pending_prompt
-
-if active_prompt:
     current_time_str = datetime.now().strftime("%I:%M %p").replace("AM", "ص").replace("PM", "م")
     
-    # إضافة السؤال إلى المحادثة إذا لم يكن مضافاً بالفعل
-    if not any(m["role"] == "user" and m["content"] == active_prompt for m in st.session_state.messages[-1:]):
-        st.session_state.messages.append({
-            "id": len(st.session_state.messages),
-            "role": "user",
-            "content": active_prompt,
-            "time": current_time_str
-        })
+    st.session_state.messages.append({
+        "id": len(st.session_state.messages),
+        "role": "user",
+        "content": user_input,
+        "time": current_time_str
+    })
 
     if not st.session_state.api_key:
         st.session_state.messages.append({
@@ -500,7 +601,7 @@ if active_prompt:
             "latency": 0.0,
             "chart": None,
             "mindmap": None,
-            "raw_query": active_prompt
+            "raw_query": user_input
         })
         st.rerun()
     else:
@@ -526,7 +627,7 @@ if active_prompt:
 المحادثة السابقة:
 {history_text}
 
-سؤال المستخدم: "{active_prompt}"
+سؤال المستخدم: "{user_input}"
 
 قواعد التلوين:
 - أي اسم عمود أو بند: ضعه بين [[اسم البند]] (سيتحول تلقائياً إلى اللون الأزرق السماوي).
@@ -550,7 +651,7 @@ if active_prompt:
                     "latency": latency,
                     "chart": parsed.get("chart") if parsed.get("chart", {}).get("has_chart") else None,
                     "mindmap": parsed.get("mindmap") if parsed.get("mindmap", {}).get("has_mindmap") else None,
-                    "raw_query": active_prompt
+                    "raw_query": user_input
                 })
 
             except Exception as e:
@@ -562,7 +663,7 @@ if active_prompt:
                     "latency": 0.0,
                     "chart": None,
                     "mindmap": None,
-                    "raw_query": active_prompt
+                    "raw_query": user_input
                 })
 
         st.rerun()
