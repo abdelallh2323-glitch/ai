@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import json
 import os
+import re
 import streamlit.components.v1 as components
 import plotly.express as px
 
@@ -18,7 +19,6 @@ st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap');
 
-    /* توحيد خط التطبيق بشكل أنيق ومريح */
     body, p, span, .stMarkdown, .stTextInput, .stButton, .stChatInput {
         font-family: 'Cairo', sans-serif !important;
         font-size: 15px !important;
@@ -30,7 +30,7 @@ st.markdown("""
         color: #e2e8f0;
     }
 
-    /* حل مشكلة الشاشة الممتدة على الكمبيوتر: تحديد عرض مريح ومحاذاة في المنتصف مثل ChatGPT */
+    /* توسيط وضبط العرض على الكمبيوتر */
     .main .block-container {
         max-width: 840px !important;
         padding-top: 1.5rem !important;
@@ -40,7 +40,7 @@ st.markdown("""
         margin: 0 auto !important;
     }
 
-    /* رأس الصفحة المتناسق */
+    /* رأس الصفحة */
     .chat-header {
         background: #1e293b;
         border: 1px solid #334155;
@@ -80,12 +80,12 @@ st.markdown("""
         border: 1px solid #1e293b !important;
     }
 
-    /* 🎨 تلوين بنود الإكسل، المعادلات، والأرقام داخل النص */
+    /* 🎨 تلوين البنود والمعادلات */
     .item-badge {
         color: #38bdf8 !important;
-        background: rgba(56, 189, 248, 0.12);
-        border: 1px solid rgba(56, 189, 248, 0.35);
-        padding: 2px 7px;
+        background: rgba(56, 189, 248, 0.15);
+        border: 1px solid rgba(56, 189, 248, 0.4);
+        padding: 2px 8px;
         border-radius: 6px;
         font-weight: 700;
         display: inline-block;
@@ -94,9 +94,9 @@ st.markdown("""
 
     .calc-badge {
         color: #4ade80 !important;
-        background: rgba(74, 222, 128, 0.12);
-        border: 1px solid rgba(74, 222, 128, 0.35);
-        padding: 2px 7px;
+        background: rgba(74, 222, 128, 0.15);
+        border: 1px solid rgba(74, 222, 128, 0.4);
+        padding: 2px 8px;
         border-radius: 6px;
         font-weight: 700;
         display: inline-block;
@@ -105,12 +105,7 @@ st.markdown("""
         direction: ltr !important;
     }
 
-    .num-highlight {
-        color: #fbbf24 !important;
-        font-weight: 700;
-    }
-
-    /* صندوق إدخال الشات المتناسق */
+    /* صندوق إدخال الشات */
     .stChatInputContainer textarea {
         direction: rtl !important;
         text-align: right !important;
@@ -124,42 +119,76 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# ----------------- دالة ذكية للاتصال واكتشاف النماذج المتاحة -----------------
-def get_available_models(client):
-    try:
-        model_names = []
-        for m in client.models.list():
-            name = m.name.replace("models/", "")
-            if "embed" not in name.lower():
-                model_names.append(name)
-        return model_names
-    except Exception:
-        return []
+# ----------------- معالجة نصوص التلوين بأمان تام -----------------
+def apply_custom_styling(text):
+    if not text:
+        return ""
+    # تحويل [[اسم البند]] إلى شارة زرقاء
+    text = re.sub(r'\[\[(.*?)\]\]', r'<span class="item-badge">\1</span>', text)
+    # تحويل {{المعادلة أو الرقم}} إلى شارة خضراء
+    text = re.sub(r'\{\{(.*?)\}\}', r'<span class="calc-badge">\1</span>', text)
+    return text
 
-def generate_ai_response(prompt_text, user_api_key, preferred_model=None):
+def parse_safe_json(raw_text):
+    clean = raw_text.strip()
+    if clean.startswith("```json"):
+        clean = clean[7:]
+    elif clean.startswith("```"):
+        clean = clean[3:]
+    if clean.endswith("```"):
+        clean = clean[:-3]
+    clean = clean.strip()
+    
+    # 1. المحاولة المباشرة القياسية
+    try:
+        return json.loads(clean)
+    except Exception:
+        pass
+
+    # 2. محاولة إصلاح الرموز وعلامات التنصيص غير المغلقة
+    try:
+        # البحث عن حقل الإجابة عبر التعبيرات النمطية
+        ans_match = re.search(r'"answer_arabic"\s*:\s*"(.*?)"\s*,\s*"speech_summary"', clean, re.DOTALL)
+        if ans_match:
+            ans_content = ans_match.group(1).replace('\\"', '"').replace('\\n', '\n')
+            return {
+                "answer_arabic": ans_content,
+                "speech_summary": ans_content[:100],
+                "chart": {"has_chart": False},
+                "mindmap": {"has_mindmap": False}
+            }
+    except Exception:
+        pass
+
+    # 3. خطة أمان قصوى: إظهار الرد نفسه دون إيقاف البرنامج بخطأ
+    return {
+        "answer_arabic": clean,
+        "speech_summary": clean[:100],
+        "chart": {"has_chart": False},
+        "mindmap": {"has_mindmap": False}
+    }
+
+# ----------------- دالة الاتصال بالذكاء الاصطناعي -----------------
+def generate_ai_response(prompt_text, user_api_key):
     from google import genai
     client = genai.Client(api_key=user_api_key)
     
-    # 1. إذا حدد المستخدم نموذجاً أو تم اكتشافه
+    # جلب النماذج المتاحة
     candidates = []
-    if preferred_model:
-        candidates.append(preferred_model)
-        
-    # 2. محاولة جلب النماذج المدعومة من حساب المستخدم مباشرة لتجنب خطأ 404
-    discovered = get_available_models(client)
-    if discovered:
-        # ترتيب النماذج بحيث تأتي الأحدث والأسرع أولاً
-        flash_models = [m for m in discovered if "flash" in m.lower()]
-        other_models = [m for m in discovered if "flash" not in m.lower()]
-        candidates.extend(flash_models + other_models)
-    
-    # 3. قائمة افتراضية احتياطية
-    fallback_defaults = ['gemini-2.0-flash', 'gemini-2.5-flash', 'gemini-3.8-flash', 'gemini-1.5-pro']
-    for fb in fallback_defaults:
-        if fb not in candidates:
-            candidates.append(fb)
+    try:
+        for m in client.models.list():
+            m_name = m.name.replace("models/", "")
+            if "embed" not in m_name.lower():
+                candidates.append(m_name)
+    except Exception:
+        pass
 
-    # تجربة النماذج حتى ينجح أحدها
+    # ترتيب واختيار النماذج المفضلة
+    defaults = ['gemini-2.0-flash', 'gemini-2.5-flash', 'gemini-3.8-flash', 'gemini-1.5-pro']
+    for d in defaults:
+        if d not in candidates:
+            candidates.append(d)
+
     errors = []
     for model_name in candidates:
         try:
@@ -168,24 +197,26 @@ def generate_ai_response(prompt_text, user_api_key, preferred_model=None):
                 contents=prompt_text,
             )
             if response and response.text:
-                return response.text, model_name
+                return response.text
         except Exception as err:
             errors.append(f"{model_name}: {err}")
             continue
 
-    raise Exception(f"تعذر الاتصال بالنماذج المتاحة. الأخطاء:\n" + "\n".join(errors[:3]))
+    raise Exception("تعذر الاتصال بالنماذج. تفاصيل:\n" + "\n".join(errors[:2]))
 
-# ----------------- تهيئة ذاكرة الشات والرسائل -----------------
+# ----------------- تهيئة ذاكرة الشات -----------------
 if "messages" not in st.session_state:
+    initial_text = apply_custom_styling("""أهلاً بك! 🇦🇪 تم ربط [[ميزانية السفر للإمارات]] بنجاح.
+يمكنك سؤالي عن أي مقارنة أو تكلفة، وسأوضح لك:
+- [[أسماء البنود والأعمدة]] باللون الأزرق.
+- {{الحسابات والأرقام والمعادلات}} باللون الأخضر.
+- التحليل المالي والردود باللون المعتاد، مع رسوم بيانية وخرائط عمل عند الحاجة.""")
+
     st.session_state.messages = [
         {
             "role": "assistant",
-            "content": """أهلاً بك! 🇦🇪 تم ربط <span class="item-badge">ميزانية السفر للإمارات</span> بنجاح.
-يمكنك سؤالي عن أي بند أو تكلفة، وسأعرض لك:
-- <span class="item-badge">أسماء البنود والأعمدة</span> باللون الأزرق.
-- <span class="calc-badge">الحسابات والأرقام والمعادلات</span> باللون الأخضر.
-- التحليل المالي والنصائح باللون المعتاد، مع رسوم بيانية وخرائط ذهنية عند الحاجة.""",
-            "speech": "أهلاً بك! تم ربط ميزانية السفر للإمارات. اسألني عن أي بند وسأحسب لك التكاليف فوراً.",
+            "content": initial_text,
+            "speech": "أهلاً بك! تم ربط ميزانية السفر للإمارات. اسألني عن أي مقارنة وسأحسب لك التكاليف فوراً.",
             "chart": None,
             "mindmap": None
         }
@@ -358,14 +389,14 @@ if df is not None:
         c2.metric("عدد الأعمدة", len(df.columns))
         st.dataframe(df, use_container_width=True)
 
-# ----------------- عرض رسائل الشات مع دعم وسوم التلوين -----------------
+# ----------------- عرض رسائل الشات -----------------
 for idx, msg in enumerate(st.session_state.messages):
     with st.chat_message(msg["role"]):
         st.markdown(msg["content"], unsafe_allow_html=True)
         
         # زر الاستماع الصوتي
         if msg.get("speech"):
-            clean_speech = msg["speech"].replace("<span class='item-badge'>", "").replace("<span class='calc-badge'>", "").replace("</span>", "")
+            clean_speech = re.sub(r'<.*?>', '', msg["speech"]).replace("[[", "").replace("]]", "").replace("{{", "").replace("}}", "")
             speech_js = f"""
             <div style="direction: rtl; margin-top: 5px;">
                 <button onclick="speakMsg_{idx}()" style="
@@ -460,7 +491,6 @@ if user_input:
         with st.chat_message("assistant"):
             with st.spinner("🧠 جاري فحص بنود الميزانية وحساب الأرقام..."):
                 try:
-                    # تلخيص كل أوراق العمل في ملف الميزانية
                     summary_parts = []
                     for sheet_name, s_df in all_sheets_data.items():
                         summary_parts.append(f"--- ورقة الميزانية: {sheet_name} ---")
@@ -472,11 +502,10 @@ if user_input:
 
                     data_summary = "\n\n".join(summary_parts)
 
-                    # سياق آخر 4 رسائل سابقة
+                    # سياق المحادثة السابقة
                     history_context = []
                     for h_msg in st.session_state.messages[-5:-1]:
-                        # تنظيف الوسوم من السياق حتى لا تشوش على النموذج
-                        c_text = h_msg['content'].replace("<span class='item-badge'>", "").replace("<span class='calc-badge'>", "").replace("</span>", "")
+                        c_text = re.sub(r'<.*?>', '', h_msg['content'])
                         history_context.append(f"{h_msg['role']}: {c_text}")
                     history_text = "\n".join(history_context)
 
@@ -490,48 +519,44 @@ if user_input:
 
 سؤال المستخدم الحالي: "{user_input}"
 
-قواعد هامة جداً لتنسيق الألوان في إجابتك:
-1. عند الإشارة إلى أي اسم عمود أو بند أو تصنيف من الجدول، ضعه داخل: <span class="item-badge">اسم البند</span> (سيظهر بلون أزرق مميز).
-2. عند كتابة أي معادلة، عملية حسابية، أو رقم وتكلفة مالية، ضعه داخل: <span class="calc-badge">المعادلة أو الرقم</span> (سيظهر بلون أخضر مميز).
-3. باقي الكلام والشرح العادي: اكتبه باللغة العربية الطبيعية بدون وسوم.
+طريقة التلوين المطلوبة (مهم جداً الالتزام بهذه الأقواس البسيطة):
+- ضع أي اسم بند أو عمود بين قوسين مربعين مثل: [[اسم البند]] (سيتحول تلقائياً للون الأزرق).
+- ضع أي معادلة أو عملية حسابية أو رقم وتكلفة بين قوسين معكوفين مثل: {{{{المعادلة أو الرقم}}}} (سيتحول تلقائياً للون الأخضر).
+- لا تكتب أي وسوم HTML نهائياً، فقط استخدم [[...]] و {{{{...}}}}.
 
 أجب حصراً بصيغة JSON نظيفة بدون أي كلام خارج الـ JSON:
 {{
-    "answer_arabic": "الإجابة التحليلية الذكية باللغة العربية مع تطبيق وسوم التلوين على البنود والمعادلات.",
-    "speech_summary": "ملخص صوتي سريع خالي من أي وسوم HTML مناسب للنطق الصوتي.",
+    "answer_arabic": "الإجابة باللغة العربية مع استخدام [[البنود]] و {{{{المعادلات}}}}.",
+    "speech_summary": "ملخص صوتي قصير سطر واحد فقط خالي من الأقواس والرموز.",
     "chart": {{
-        "has_chart": true or false,
-        "type": "bar" | "line" | "pie",
-        "title": "عنوان الرسم بالعربية",
-        "x_col": "اسم العمود",
-        "y_col": "اسم عمود التكلفة/المبلغ",
+        "has_chart": false,
+        "type": "bar",
+        "title": "عنوان",
+        "x_col": "",
+        "y_col": "",
         "agg": "sum"
     }},
     "mindmap": {{
-        "has_mindmap": true or false,
-        "mermaid_code": "graph TD\\n A[الميزانية] --> B[البند 1]"
+        "has_mindmap": false,
+        "mermaid_code": ""
     }}
 }}
 """
 
-                    raw_response, used_model = generate_ai_response(prompt, api_key)
-                    clean_json = raw_response.strip()
-                    if clean_json.startswith("```json"):
-                        clean_json = clean_json[7:]
-                    if clean_json.endswith("```"):
-                        clean_json = clean_json[:-3]
-                    clean_json = clean_json.strip()
+                    raw_response = generate_ai_response(prompt, api_key)
+                    res_data = parse_safe_json(raw_response)
 
-                    res_data = json.loads(clean_json)
+                    # تطبيق التلوين الأنيق
+                    raw_answer = res_data.get("answer_arabic", "")
+                    styled_answer = apply_custom_styling(raw_answer)
 
-                    answer_text = res_data.get("answer_arabic", "")
                     speech_text = res_data.get("speech_summary", "")
                     chart_data = res_data.get("chart") if res_data.get("chart", {}).get("has_chart") else None
                     mindmap_data = res_data.get("mindmap") if res_data.get("mindmap", {}).get("has_mindmap") else None
 
                     st.session_state.messages.append({
                         "role": "assistant",
-                        "content": answer_text,
+                        "content": styled_answer,
                         "speech": speech_text,
                         "chart": chart_data,
                         "mindmap": mindmap_data
