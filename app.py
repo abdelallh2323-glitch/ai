@@ -95,14 +95,41 @@ st.markdown("""
         transition: all 0.2s ease;
     }
 
-    /* نص إجابة الذكاء الاصطناعي بنمط Gemini الحر */
-    .gemini-ai-text {
+    /* نص إجابة الذكاء الاصطناعي بنمط Gemini الحر وتنسيق القوائم النظيف */
+    .gemini-ai-text, .gemini-ai-content {
         color: #e3e3e3;
         font-size: 15.5px;
         line-height: 1.85;
         direction: rtl;
         text-align: right;
         margin-bottom: 6px;
+    }
+
+    .gemini-ai-content p, .gemini-ai-content li {
+        font-family: 'Cairo', sans-serif !important;
+        font-size: 15.5px !important;
+        line-height: 1.85 !important;
+        color: #e3e3e3 !important;
+        direction: rtl !important;
+        text-align: right !important;
+    }
+
+    .gemini-ai-content ol {
+        direction: rtl !important;
+        padding-right: 28px !important;
+        padding-left: 0 !important;
+        margin: 10px 0 !important;
+    }
+
+    .gemini-ai-content ul {
+        direction: rtl !important;
+        padding-right: 24px !important;
+        padding-left: 0 !important;
+        margin: 10px 0 !important;
+    }
+
+    .gemini-ai-content li {
+        margin-bottom: 6px !important;
     }
 
     /* التمييز اللوني الراقي للبيانات */
@@ -397,16 +424,15 @@ for idx, msg in enumerate(st.session_state.messages):
     if msg["role"] == "user":
         u_content = msg['content']
         u_time = msg.get('time', now_time)
-        clean_user_txt = html.escape(u_content, quote=True)
 
         user_html = (
             f'<div class="chat-row-user">'
-            f'<div class="gemini-user-pill" id="user_pill_{msg_id}">{u_content}</div>'
+            f'<div class="gemini-user-pill" id="user_pill_{msg_id}">{html.escape(u_content)}</div>'
             f'<div class="action-bar-container">'
             f'<span class="meta-time-text">{u_time}</span>'
             f'<div class="action-icons-group">'
-            f'<button type="button" class="gemini-svg-btn gemini-copy-btn" data-text="{clean_user_txt}" title="نسخ">{SVG_COPY}</button>'
-            f'<button type="button" class="gemini-svg-btn gemini-edit-btn" data-id="{msg_id}" data-text="{clean_user_txt}" title="تحرير السؤال">{SVG_EDIT}</button>'
+            f'<button type="button" class="gemini-svg-btn gemini-copy-btn" data-target="user_pill_{msg_id}" title="نسخ">{SVG_COPY}</button>'
+            f'<button type="button" class="gemini-svg-btn gemini-edit-btn" data-id="{msg_id}" title="تحرير السؤال">{SVG_EDIT}</button>'
             f'</div></div></div>'
         )
         st.markdown(user_html, unsafe_allow_html=True)
@@ -415,21 +441,27 @@ for idx, msg in enumerate(st.session_state.messages):
         ai_time = msg.get('time', now_time)
         latency_val = msg.get('latency', 0.4)
         raw_q = msg.get('raw_query', '')
-        clean_ai_txt = html.escape(re.sub(r'<.*?>', '', msg['content']), quote=True)
-        clean_raw_q = html.escape(raw_q or "", quote=True)
 
-        regen_btn_html = f'<button type="button" class="gemini-svg-btn gemini-regen-btn" data-query="{clean_raw_q}" title="إعادة بناء الرد">{SVG_REGEN}</button>' if raw_q else ''
+        # 1. عرض نص إجابة الذكاء الاصطناعي مع معالجة Markdown بدقة داخل الحاوية النظيفة
+        ai_content_html = f'<div class="gemini-ai-content" id="ai_text_{msg_id}">\n\n{msg["content"]}\n\n</div>'
+        st.markdown(ai_content_html, unsafe_allow_html=True)
 
-        ai_html = (
-            f'<div class="gemini-ai-text">{msg["content"]}</div>'
+        # 2. تجهيز زر إعادة التوليد باستخدام Base64 لتجنب أي تداخل مع وسوم HTML
+        regen_btn_html = ""
+        if raw_q:
+            b64_q = base64.b64encode(raw_q.encode('utf-8')).decode('utf-8')
+            regen_btn_html = f'<button type="button" class="gemini-svg-btn gemini-regen-btn" data-query-b64="{b64_q}" title="إعادة بناء الرد">{SVG_REGEN}</button>'
+
+        # 3. شريط الإجراءات والوقت منفصل تماماً
+        action_bar_html = (
             f'<div class="action-bar-container">'
             f'<span class="meta-time-text">{ai_time} • {latency_val} ثانية</span>'
             f'<div class="action-icons-group">'
-            f'<button type="button" class="gemini-svg-btn gemini-copy-btn" data-text="{clean_ai_txt}" title="نسخ الإجابة">{SVG_COPY}</button>'
+            f'<button type="button" class="gemini-svg-btn gemini-copy-btn" data-target="ai_text_{msg_id}" title="نسخ الإجابة">{SVG_COPY}</button>'
             f'{regen_btn_html}'
             f'</div></div>'
         )
-        st.markdown(ai_html, unsafe_allow_html=True)
+        st.markdown(action_bar_html, unsafe_allow_html=True)
 
         # الرسم البياني إن وجد
         if msg.get("chart") and df is not None:
@@ -480,8 +512,14 @@ interactive_engine = """
             if (copyBtn) {
                 e.preventDefault();
                 e.stopPropagation();
-                const text = copyBtn.getAttribute('data-text');
+                let text = copyBtn.getAttribute('data-text');
+                const targetId = copyBtn.getAttribute('data-target');
+                if (targetId) {
+                    const el = pdoc.getElementById(targetId);
+                    if (el) text = el.innerText || el.textContent;
+                }
                 if (!text) return;
+                text = text.trim();
 
                 function showDone() {
                     const orig = copyBtn.innerHTML;
@@ -564,7 +602,15 @@ interactive_engine = """
             if (regenBtn) {
                 e.preventDefault();
                 e.stopPropagation();
-                const query = regenBtn.getAttribute('data-query');
+                let query = regenBtn.getAttribute('data-query');
+                const queryB64 = regenBtn.getAttribute('data-query-b64');
+                if (queryB64) {
+                    try {
+                        query = decodeURIComponent(atob(queryB64).split('').map(c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2)).join(''));
+                    } catch(e) {
+                        try { query = atob(queryB64); } catch(e2) {}
+                    }
+                }
                 if (query) {
                     const orig = regenBtn.innerHTML;
                     regenBtn.innerHTML = '<span style="color:#a8c7fa; font-size:11px; font-family:Cairo,sans-serif;">جارٍ التوليد...</span>';
