@@ -5,9 +5,24 @@ import os
 import re
 import time
 import html
+import base64
 from datetime import datetime
 import streamlit.components.v1 as components
 import plotly.express as px
+
+# تحميل أيقونة ICON.gif بصيغة base64 مع الكاش
+@st.cache_data
+def get_icon_b64():
+    for name in ["ICON.gif", "icon.gif"]:
+        if os.path.exists(name):
+            try:
+                with open(name, "rb") as f:
+                    return base64.b64encode(f.read()).decode()
+            except Exception:
+                pass
+    return ""
+
+icon_b64 = get_icon_b64()
 
 # إعداد الصفحة بنمط Google Gemini الرسمي
 st.set_page_config(
@@ -172,6 +187,41 @@ st.markdown("""
     }
 </style>
 """, unsafe_allow_html=True)
+
+# استبدال علامة التحميل الافتراضية بـ ICON.gif المتحركة في لوب مستمر
+if icon_b64:
+    st.markdown(f"""
+    <style>
+        [data-testid="stSpinnerIcon"] {{
+            display: inline-block !important;
+            width: 46px !important;
+            height: 46px !important;
+            border: none !important;
+            animation: none !important;
+            background: url('data:image/gif;base64,{icon_b64}') no-repeat center center !important;
+            background-size: contain !important;
+            border-radius: 50% !important;
+            margin: 0 10px !important;
+            vertical-align: middle !important;
+        }}
+        div[data-testid="stSpinner"] {{
+            direction: rtl !important;
+        }}
+        div[data-testid="stSpinner"] > div {{
+            display: flex !important;
+            align-items: center !important;
+            gap: 10px !important;
+            direction: rtl !important;
+        }}
+        div[data-testid="stSpinner"] p, div[data-testid="stSpinner"] span {{
+            color: #a8c7fa !important;
+            font-family: 'Cairo', sans-serif !important;
+            font-size: 15.5px !important;
+            font-weight: 500 !important;
+            margin: 0 !important;
+        }}
+    </style>
+    """, unsafe_allow_html=True)
 
 # ----------------- أيقونات فيكتور SVG مرسومة فاخرة (Outlines) -----------------
 SVG_COPY = '''<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>'''
