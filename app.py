@@ -16,7 +16,7 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# ----------------- تصميم Gemini الراقي بالأيقونات المتجهية SVG -----------------
+# ----------------- تصميم Gemini الراقي بالأيقونات المتجهية (SVG) -----------------
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700&family=Google+Sans:wght@400;500;700&display=swap');
@@ -39,7 +39,7 @@ st.markdown("""
         margin: 0 auto !important;
     }
 
-    /* شريط البيانات العلوي البسيط */
+    /* شريط البيانات العلوي */
     .top-meta-bar {
         display: flex;
         justify-content: space-between;
@@ -62,13 +62,13 @@ st.markdown("""
         gap: 6px;
     }
 
-    /* كبسولة سؤال المستخدم */
+    /* رسائل المستخدم */
     .chat-row-user {
         display: flex;
         flex-direction: column;
         align-items: flex-start;
         direction: rtl;
-        margin-bottom: 22px;
+        margin-bottom: 24px;
     }
 
     .gemini-user-pill {
@@ -84,17 +84,6 @@ st.markdown("""
         display: inline-block;
         max-width: 85%;
         box-shadow: 0 1px 3px rgba(0,0,0,0.3);
-    }
-
-    /* شريط تفاصيل وتوقيت الرسائل */
-    .msg-info-row {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        margin-top: 6px;
-        font-size: 11px;
-        color: #727775;
-        direction: rtl;
     }
 
     /* إجابة الذكاء الاصطناعي بنمط Gemini الحر */
@@ -114,7 +103,6 @@ st.markdown("""
         margin-bottom: 8px;
     }
 
-    /* تلوين البنود والأرقام الراقي */
     .item-highlight {
         color: #a8c7fa !important;
         font-weight: 700;
@@ -128,14 +116,41 @@ st.markdown("""
         display: inline-block;
     }
 
-    /* شريط الأيقونات الراقي (SVG Icons) */
-    .gemini-actions {
+    /* شريط الأيقونات والتوقيت المدمج */
+    .meta-action-bar {
         display: flex;
         align-items: center;
-        gap: 10px;
-        margin-top: 10px;
+        gap: 12px;
+        margin-top: 8px;
+        direction: rtl;
+    }
+
+    .time-badge {
+        font-size: 11px;
+        color: #8e918f;
+        unicode-bidi: isolate;
+        direction: rtl;
+    }
+
+    .latency-badge {
+        font-size: 11px;
+        color: #8e918f;
+        unicode-bidi: isolate;
+        direction: rtl;
+    }
+
+    .dot-sep {
+        color: #444746;
+        font-size: 11px;
+        margin: 0 4px;
+    }
+
+    .icons-group {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        margin-right: auto;
         direction: ltr;
-        justify-content: flex-end;
     }
 
     .svg-action-btn {
@@ -156,14 +171,7 @@ st.markdown("""
         background: rgba(255, 255, 255, 0.08);
     }
 
-    .meta-time-text {
-        font-size: 11px;
-        color: #727775;
-        margin-right: 6px;
-        font-family: sans-serif;
-    }
-
-    /* شريط السؤال السفلي المدمج */
+    /* صندوق الإدخال السفلي المثبت بنمط Gemini */
     .stChatInputContainer {
         position: fixed !important;
         bottom: 18px !important;
@@ -186,21 +194,6 @@ st.markdown("""
         box-shadow: 0 4px 24px rgba(0, 0, 0, 0.5) !important;
     }
 
-    /* زر المايك المدمج في شريط السؤال بالأسفل */
-    .bottom-mic-dock {
-        position: fixed;
-        bottom: 27px;
-        left: calc(50% + 290px);
-        z-index: 1001;
-    }
-    @media (max-width: 768px) {
-        .bottom-mic-dock {
-            left: auto;
-            right: 18px;
-            bottom: 74px;
-        }
-    }
-
     section[data-testid="stSidebar"] {
         background-color: #1e1f20 !important;
         border-left: 1px solid rgba(255, 255, 255, 0.08) !important;
@@ -208,11 +201,10 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# ----------------- أيقونات SVG مرسومة فاخرة (Vector Outlines) -----------------
+# ----------------- أيقونات SVG مرسومة فاخرة (Outlines) -----------------
 SVG_COPY = '''<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>'''
 SVG_REGEN = '''<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/></svg>'''
-SVG_EDIT = '''<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>'''
-SVG_MIC = '''<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#a8c7fa" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="23"></line><line x1="8" y1="23" x2="16" y2="23"></line></svg>'''
+SVG_EDIT = '''<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>'''
 SVG_DATABASE = '''<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#a8c7fa" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"></ellipse><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path></svg>'''
 
 # ----------------- دوال التنسيق -----------------
@@ -258,7 +250,7 @@ def generate_ai_response(prompt_text, user_api_key):
             continue
     raise Exception(f"خطأ في الاتصال: {last_err}")
 
-# ----------------- إدارة الملفات ديناميكياً (أي ملف إكسل أو CSV) -----------------
+# ----------------- إدارة الملفات ديناميكياً -----------------
 df = None
 all_sheets = {}
 active_file_name = "لا يوجد ملف"
@@ -286,7 +278,7 @@ with st.sidebar:
         st.session_state.messages = []
         st.rerun()
 
-# تحميل الملف
+# تحميل الملف النشط
 if uploaded_file is not None:
     try:
         active_file_name = uploaded_file.name
@@ -322,22 +314,33 @@ with st.sidebar:
         st.markdown(f"**الملف النشط: {active_file_name}** ({len(df)} صف)")
         st.dataframe(df.head(10), use_container_width=True)
 
-# ----------------- معالجة أوامر التحرير وإعادة الرد من الأيقونات -----------------
-# التحقق من الضغط على زر إعادة الرد
-if "action_regen" in st.session_state:
-    target_q = st.session_state.action_regen
-    del st.session_state.action_regen
-    st.session_state.pending_run = target_q
+# ----------------- معالجة الأوامر من الرابط (Regenerate / Edit) -----------------
+params = st.query_params
+if "regen" in params:
+    try:
+        r_id = int(params["regen"])
+        # البحث عن السؤال المقترن بهذا الرد
+        for m in st.session_state.get("messages", []):
+            if m.get("id") == r_id and m.get("raw_query"):
+                st.session_state.pending_run = m["raw_query"]
+                st.session_state.messages = [x for x in st.session_state.messages if x.get("id") != r_id]
+                break
+    except Exception:
+        pass
+    st.query_params.clear()
+    st.rerun()
 
-# التحقق من الضغط على زر تحرير السؤال
-edit_placeholder = "اسأل Gemini عن أي معلومة في بياناتك ✦"
-if "action_edit" in st.session_state:
-    edit_text = st.session_state.action_edit
-    del st.session_state.action_edit
-    st.session_state.edit_draft = edit_text
-
-if "edit_draft" in st.session_state:
-    st.info(f"✏️ جارٍ تعديل السؤال: {st.session_state.edit_draft}")
+if "edit" in params:
+    try:
+        e_id = int(params["edit"])
+        for m in st.session_state.get("messages", []):
+            if m.get("id") == e_id and m.get("role") == "user":
+                st.session_state.edit_draft = m["content"]
+                break
+    except Exception:
+        pass
+    st.query_params.clear()
+    st.rerun()
 
 # ----------------- تهيئة ذاكرة الشات -----------------
 now_time = datetime.now().strftime("%I:%M %p").replace("AM", "ص").replace("PM", "م")
@@ -359,7 +362,7 @@ if "messages" not in st.session_state or len(st.session_state.messages) == 0:
         }
     ]
 
-# ----------------- شريط الحالة العلوي النظيف -----------------
+# ----------------- شريط الحالة العلوي -----------------
 st.markdown(f"""
 <div class="top-meta-bar">
     <div class="active-file-tag">
@@ -374,7 +377,7 @@ st.markdown(f"""
 </div>
 """, unsafe_allow_html=True)
 
-# ----------------- عرض رسائل الشات مع التواريخ والأيقونات المرسومة -----------------
+# ----------------- عرض رسائل الشات -----------------
 for idx, msg in enumerate(st.session_state.messages):
     msg_id = msg.get("id", idx)
 
@@ -388,10 +391,12 @@ for idx, msg in enumerate(st.session_state.messages):
             <div class="gemini-user-pill">
                 {u_content}
             </div>
-            <div class="msg-info-row">
-                <span>{u_time}</span>
-                <span>•</span>
-                <button class="svg-action-btn" onclick='navigator.clipboard.writeText({u_clean_json}); this.innerHTML="✓";' title="نسخ السؤال">{SVG_COPY}</button>
+            <div class="meta-action-bar">
+                <span class="time-badge">{u_time}</span>
+                <div class="icons-group">
+                    <button class="svg-action-btn" onclick='navigator.clipboard.writeText({u_clean_json});' title="نسخ">{SVG_COPY}</button>
+                    <button class="svg-action-btn" onclick='window.location.search="?edit={msg_id}";' title="تحرير السؤال">{SVG_EDIT}</button>
+                </div>
             </div>
         </div>
         """, unsafe_allow_html=True)
@@ -399,32 +404,25 @@ for idx, msg in enumerate(st.session_state.messages):
         clean_text_copy = json.dumps(re.sub(r'<.*?>', '', msg['content']))
         latency_val = msg.get('latency', 0.5)
         ai_time = msg.get('time', now_time)
-        raw_q = msg.get('raw_query', '')
+        has_query = bool(msg.get('raw_query'))
 
+        # حل مشكلة تداخل الوقت والثواني بفصل العناصر بدقة واتجاهات واضحة
         st.markdown(f"""
         <div class="gemini-ai-container">
             <div class="gemini-ai-text">{msg['content']}</div>
-            <div class="gemini-actions">
-                <span class="meta-time-text">{ai_time} • {latency_val}s</span>
-                <button class="svg-action-btn" onclick='navigator.clipboard.writeText({clean_text_copy}); this.innerHTML="✓";' title="نسخ الرد">{SVG_COPY}</button>
+            <div class="meta-action-bar">
+                <span class="time-badge">{ai_time}</span>
+                <span class="dot-sep">•</span>
+                <span class="latency-badge">{latency_val} ثانية</span>
+                <div class="icons-group">
+                    <button class="svg-action-btn" onclick='navigator.clipboard.writeText({clean_text_copy});' title="نسخ الرد">{SVG_COPY}</button>
+                    {f'<button class="svg-action-btn" onclick=\\\'window.location.search="?regen={msg_id}";\\\' title="إعادة توليد الإجابة">{SVG_REGEN}</button>' if has_query else ''}
+                </div>
             </div>
         </div>
         """, unsafe_allow_html=True)
 
-        # زرا إعادة الرد وتحرير السؤال بأيقونات SVG دقيقة
-        if raw_q:
-            c1, c2, _ = st.columns([0.8, 0.8, 8])
-            with c1:
-                if st.button("🔄", key=f"btn_rg_{msg_id}", help="إعادة بناء الرد"):
-                    st.session_state.action_regen = raw_q
-                    st.session_state.messages = [m for m in st.session_state.messages if m.get("id") != msg_id]
-                    st.rerun()
-            with c2:
-                if st.button("✏️", key=f"btn_ed_{msg_id}", help="تحرير السؤال"):
-                    st.session_state.action_edit = raw_q
-                    st.rerun()
-
-        # الرسم البياني إن وجد
+        # الرسم البياني
         if msg.get("chart") and df is not None:
             c = msg["chart"]
             xc, yc = c.get("x_col"), c.get("y_col")
@@ -434,7 +432,7 @@ for idx, msg in enumerate(st.session_state.messages):
                 fig.update_layout(paper_bgcolor="#131314", plot_bgcolor="#131314", font=dict(family="Cairo", size=12, color="#e3e3e3"), margin=dict(l=10, r=10, t=35, b=10))
                 st.plotly_chart(fig, use_container_width=True, key=f"c_{msg_id}")
 
-        # الخريطة الذهنية إن وجدت
+        # الخريطة الذهنية
         if msg.get("mindmap") and msg["mindmap"].get("mermaid_code"):
             mcode = msg["mindmap"]["mermaid_code"]
             components.html(f"""
@@ -447,54 +445,11 @@ for idx, msg in enumerate(st.session_state.messages):
             </script>
             """, height=280)
 
-# ----------------- زر المايكروفون المنقول إلى الأسفل بجوار شريط السؤال -----------------
-bottom_mic_html = """
-<div class="bottom-mic-dock">
-    <button id="dockMicBtn" onclick="toggleDockMic()" style="
-        background: #1e1f20;
-        border: 1px solid rgba(255, 255, 255, 0.12);
-        color: #a8c7fa;
-        border-radius: 50%;
-        width: 38px;
-        height: 38px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        cursor: pointer;
-        box-shadow: 0 2px 10px rgba(0,0,0,0.4);
-        transition: all 0.2s;
-    " title="تحدث بالصوت">
-        __SVG_MIC__
-    </button>
-</div>
-<script>
-    let dRec = null, dIsRec = false;
-    if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
-        const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-        dRec = new SR(); dRec.lang = 'ar-SA';
-        dRec.onstart = () => {
-            document.getElementById('dockMicBtn').style.background = '#3b82f6';
-            document.getElementById('dockMicBtn').style.boxShadow = '0 0 14px rgba(59, 130, 246, 0.7)';
-        };
-        dRec.onresult = (e) => {
-            navigator.clipboard.writeText(e.results[0][0].transcript).then(() => {
-                alert('🎙️ تم تسجيل صوتك: "' + e.results[0][0].transcript + '"\\nتم نسخه، يمكنك لصقه الآن في شريط السؤال.');
-            });
-        };
-        dRec.onend = () => {
-            document.getElementById('dockMicBtn').style.background = '#1e1f20';
-            document.getElementById('dockMicBtn').style.boxShadow = '0 2px 10px rgba(0,0,0,0.4)';
-        };
-    }
-    function toggleDockMic() {
-        if (!dRec) { alert('المتصفح لا يدعم المايك'); return; }
-        if (!dIsRec) { dRec.start(); dIsRec = true; } else { dRec.stop(); dIsRec = false; }
-    }
-</script>
-""".replace("__SVG_MIC__", SVG_MIC)
-components.html(bottom_mic_html, height=45)
-
 # ----------------- شريط السؤال السفلي مع زر الإرسال المدمج -----------------
+edit_placeholder = "اسأل Gemini عن أي معلومة في بياناتك ✦"
+if "edit_draft" in st.session_state:
+    st.info(f"✏️ جارٍ تعديل السؤال: {st.session_state.edit_draft}")
+
 user_input = st.chat_input(placeholder=edit_placeholder)
 
 active_prompt = None
@@ -509,7 +464,6 @@ elif "pending_run" in st.session_state:
 if active_prompt:
     current_time_str = datetime.now().strftime("%I:%M %p").replace("AM", "ص").replace("PM", "م")
     
-    # إضافة سؤال المستخدم فوراً مع التوقيت
     st.session_state.messages.append({
         "id": len(st.session_state.messages),
         "role": "user",
