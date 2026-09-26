@@ -16,7 +16,7 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# ----------------- تصميم Gemini الراقي والأيقونات المتناسقة -----------------
+# ----------------- تصميم Gemini الراقي بالأيقونات الفيكتور وبدون أي مربعات -----------------
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700&family=Google+Sans:wght@400;500;700&display=swap');
@@ -55,6 +55,14 @@ st.markdown("""
     }
 
     /* كبسولة سؤال المستخدم */
+    .chat-row-user {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        direction: rtl;
+        margin-bottom: 22px;
+    }
+
     .gemini-user-pill {
         background-color: #282a2c;
         color: #e3e3e3;
@@ -77,10 +85,10 @@ st.markdown("""
         line-height: 1.85;
         direction: rtl;
         text-align: right;
-        margin-bottom: 8px;
+        margin-bottom: 6px;
     }
 
-    /* التمييز اللوني الراقي */
+    /* التمييز اللوني */
     .item-highlight {
         color: #a8c7fa !important;
         font-weight: 700;
@@ -94,35 +102,57 @@ st.markdown("""
         display: inline-block;
     }
 
-    /* شريط الوقت والمعلومات */
-    .meta-time-text {
-        font-size: 11.5px;
-        color: #8e918f;
+    /* شريط الأيقونات والتوقيت (فيكتور صافي وبدون أي مربعات أو إطارات) */
+    .action-bar-container {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-top: 6px;
+        margin-bottom: 24px;
         direction: rtl;
+    }
+
+    .meta-time-text {
+        font-size: 11px;
+        color: #727775;
+        direction: rtl;
+        font-family: sans-serif;
+    }
+
+    .action-icons-group {
         display: inline-flex;
         align-items: center;
-        gap: 6px;
+        gap: 8px;
+        direction: ltr;
     }
 
-    /* تنسيق أزرار الأيقونات لتكون شفافة وأنيقة تماماً كـ Gemini */
-    div[data-testid="column"] button {
+    /* أيقونات فيكتور نقية تماماً مثل Gemini */
+    .gemini-svg-btn {
         background: transparent !important;
         border: none !important;
+        outline: none !important;
         color: #8e918f !important;
-        padding: 4px 6px !important;
-        border-radius: 6px !important;
-        font-size: 15px !important;
-        line-height: 1 !important;
+        cursor: pointer !important;
+        padding: 3px 5px !important;
+        border-radius: 4px !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
         box-shadow: none !important;
-        transition: all 0.2s ease !important;
+        transition: color 0.15s ease, transform 0.15s ease !important;
     }
 
-    div[data-testid="column"] button:hover {
+    .gemini-svg-btn:hover {
         color: #e3e3e3 !important;
         background: rgba(255, 255, 255, 0.08) !important;
+        transform: scale(1.08);
     }
 
-    /* شريط السؤال السفلي المدمج */
+    .gemini-svg-btn svg {
+        pointer-events: none;
+    }
+
+    /* صندوق الإدخال السفلي المثبت */
     .stChatInputContainer {
         position: fixed !important;
         bottom: 18px !important;
@@ -152,6 +182,11 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
+# ----------------- أيقونات فيكتور SVG مرسومة بدقة متناهية (Outlines) -----------------
+SVG_COPY = '''<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>'''
+SVG_REGEN = '''<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/></svg>'''
+SVG_EDIT = '''<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>'''
+
 # ----------------- دوال التنسيق -----------------
 def apply_gemini_styling(text):
     if not text: return ""
@@ -177,13 +212,13 @@ def parse_safe_json(raw_text):
 
     return {"answer_arabic": clean, "chart": None, "mindmap": None}
 
-# ----------------- محرك الاتصال بـ Google Gemini الذكي -----------------
+# ----------------- محرك الاتصال بـ Google Gemini -----------------
 def generate_ai_response(prompt_text, user_api_key):
     from google import genai
     clean_key = user_api_key.strip()
     client = genai.Client(api_key=clean_key)
     
-    # 1. فحص النماذج النشطة في حساب المستخدم الفعلي لتفادي خطأ 404
+    # استكشاف النماذج النشطة والمفتوحة في حساب المستخدم
     available_models = []
     try:
         for m in client.models.list():
@@ -193,14 +228,12 @@ def generate_ai_response(prompt_text, user_api_key):
     except Exception:
         pass
 
-    # ترتيب أولويات النماذج
     preferred = ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-3.8-flash', 'gemini-2.0-flash-exp']
     models_to_try = [p for p in preferred if p in available_models]
     for a in available_models:
         if a not in models_to_try:
             models_to_try.append(a)
             
-    # قائمة احتياطية في حال تعذر جلب القائمة
     if not models_to_try:
         models_to_try = ['gemini-2.0-flash', 'gemini-2.5-flash', 'gemini-3.8-flash']
 
@@ -285,7 +318,7 @@ with st.sidebar:
 now_time = datetime.now().strftime("%I:%M %p").replace("AM", "ص").replace("PM", "م")
 
 if "messages" not in st.session_state or len(st.session_state.messages) == 0:
-    welcome_msg = apply_gemini_styling(f"""أهلاً بك! أنا **Gemini**، محلل البيانات الذكي. تم ربط ملف [[{active_file_name}]] بنجاح.
+    welcome_msg = apply_gemini_styling(f"""أهلاً بك! أنا **Gemini**، مساعدك ومحلل بياناتك المحترف. تم ربط ملف [[{active_file_name}]] بنجاح.
 اسألني عن أي تفاصيل، مقارنات إحصائية، أو خطط عمل واستراتيجيات مبنية على بياناتك.""")
     st.session_state.messages = [
         {
@@ -309,56 +342,49 @@ st.markdown(f"""
 </div>
 """, unsafe_allow_html=True)
 
-# ----------------- عرض رسائل الشات بدون أي وسوم مكسورة -----------------
+# ----------------- عرض رسائل الشات بالأيقونات الفيكتور وبدون أي مربعات -----------------
 for idx, msg in enumerate(st.session_state.messages):
     msg_id = msg.get("id", idx)
 
     if msg["role"] == "user":
         u_content = msg['content']
         u_time = msg.get('time', now_time)
+        clean_user_txt = u_content.replace('"', '&quot;').replace('\n', ' ')
 
-        # 1. كبسولة السؤال
+        # كبسولة السؤال وشريط الأيقونات تحته مباشرة
         st.markdown(f"""
-        <div style="display: flex; justify-content: flex-start; direction: rtl; margin-bottom: 6px;">
+        <div class="chat-row-user">
             <div class="gemini-user-pill">{u_content}</div>
+            <div class="action-bar-container">
+                <span class="meta-time-text">{u_time}</span>
+                <div class="action-icons-group">
+                    <button class="gemini-svg-btn copy-btn" data-copy="{clean_user_txt}" title="نسخ السؤال">{SVG_COPY}</button>
+                    <button class="gemini-svg-btn edit-btn" data-query="{clean_user_txt}" title="تعديل السؤال">{SVG_EDIT}</button>
+                </div>
+            </div>
         </div>
         """, unsafe_allow_html=True)
-
-        # 2. شريط الوقت وأزرار التحرير والنسخ
-        col_t, col_b1, col_b2, _ = st.columns([2.5, 0.6, 0.6, 6.3])
-        with col_t:
-            st.markdown(f'<span class="meta-time-text">{u_time}</span>', unsafe_allow_html=True)
-        with col_b1:
-            if st.button("✏️", key=f"edit_btn_{msg_id}", help="تحرير السؤال"):
-                st.session_state.edit_draft = u_content
-                st.rerun()
-        with col_b2:
-            if st.button("📋", key=f"copy_u_{msg_id}", help="نسخ السؤال"):
-                st.toast(f"تم نسخ السؤال: {u_content[:40]}...")
 
     else:
         ai_time = msg.get('time', now_time)
         latency_val = msg.get('latency', 0.4)
-        raw_q = msg.get('raw_query')
+        raw_q = msg.get('raw_query', '')
+        clean_ai_txt = re.sub(r'<.*?>', '', msg['content']).replace('"', '&quot;').replace('\n', ' ')
+        clean_raw_q = (raw_q or "").replace('"', '&quot;').replace('\n', ' ')
 
-        # 1. نص الإجابة النقي بدون تداخل وسوم
+        # إجابة الذكاء الاصطناعي الحرة وشريط الأيقونات تحتها
+        regen_button_html = f'<button class="gemini-svg-btn regen-btn" data-query="{clean_raw_q}" title="إعادة الرد">{SVG_REGEN}</button>' if raw_q else ''
+        
         st.markdown(f"""
         <div class="gemini-ai-text">{msg['content']}</div>
+        <div class="action-bar-container">
+            <span class="meta-time-text">{ai_time} • {latency_val} ثانية</span>
+            <div class="action-icons-group">
+                <button class="gemini-svg-btn copy-btn" data-copy="{clean_ai_txt}" title="نسخ الإجابة">{SVG_COPY}</button>
+                {regen_button_html}
+            </div>
+        </div>
         """, unsafe_allow_html=True)
-
-        # 2. شريط الوقت والأزرار جنب بعضها
-        col_t, col_b1, col_b2, _ = st.columns([3.5, 0.6, 0.6, 5.3])
-        with col_t:
-            st.markdown(f'<span class="meta-time-text">{ai_time} • {latency_val} ثانية</span>', unsafe_allow_html=True)
-        with col_b1:
-            if raw_q and st.button("🔄", key=f"regen_btn_{msg_id}", help="إعادة بناء الرد"):
-                st.session_state.pending_run = raw_q
-                st.session_state.messages = [m for m in st.session_state.messages if m.get("id") != msg_id]
-                st.rerun()
-        with col_b2:
-            if st.button("📋", key=f"copy_ai_{msg_id}", help="نسخ الرد"):
-                clean_copy = re.sub(r'<.*?>', '', msg['content'])
-                st.toast("تم نسخ الإجابة بنجاح ✓")
 
         # الرسم البياني إن وجد
         if msg.get("chart") and df is not None:
@@ -383,29 +409,96 @@ for idx, msg in enumerate(st.session_state.messages):
             </script>
             """, height=280)
 
+# ----------------- مشغل الأوامر التفاعلي الذكي للأيقونات (نسخ، تحرير، إعادة رد) -----------------
+interactive_js = """
+<script>
+(function() {
+    const pdoc = window.parent.document;
+    if (!pdoc) return;
+
+    // 1. تشغيل زر النسخ
+    pdoc.querySelectorAll('.copy-btn').forEach(btn => {
+        if (btn.dataset.bound) return;
+        btn.dataset.bound = "true";
+        btn.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            const text = btn.getAttribute('data-copy');
+            if (!text) return;
+            
+            const ta = pdoc.createElement('textarea');
+            ta.value = text;
+            ta.style.position = 'fixed';
+            ta.style.opacity = '0';
+            pdoc.body.appendChild(ta);
+            ta.select();
+            try {
+                pdoc.execCommand('copy');
+                const orig = btn.innerHTML;
+                btn.innerHTML = '<span style="color:#6dd58c; font-size:11px; font-weight:700;">✓</span>';
+                setTimeout(() => { btn.innerHTML = orig; }, 1500);
+            } catch (err) {}
+            pdoc.body.removeChild(ta);
+        });
+    });
+
+    // 2. تشغيل زر التحرير (ينقل السؤال لصندوق الكتابة فوراً)
+    pdoc.querySelectorAll('.edit-btn').forEach(btn => {
+        if (btn.dataset.bound) return;
+        btn.dataset.bound = "true";
+        btn.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            const q = btn.getAttribute('data-query');
+            const textarea = pdoc.querySelector('.stChatInputContainer textarea');
+            if (textarea && q) {
+                const nativeSetter = Object.getOwnPropertyDescriptor(window.parent.HTMLTextAreaElement.prototype, "value").set;
+                nativeSetter.call(textarea, q);
+                textarea.dispatchEvent(new Event('input', { bubbles: true }));
+                textarea.focus();
+                textarea.scrollIntoView({ behavior: 'smooth' });
+            }
+        });
+    });
+
+    // 3. تشغيل زر إعادة الرد (يكتب السؤال في الصندوق ويرسله فوراً)
+    pdoc.querySelectorAll('.regen-btn').forEach(btn => {
+        if (btn.dataset.bound) return;
+        btn.dataset.bound = "true";
+        btn.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            const q = btn.getAttribute('data-query');
+            const textarea = pdoc.querySelector('.stChatInputContainer textarea');
+            if (textarea && q) {
+                const nativeSetter = Object.getOwnPropertyDescriptor(window.parent.HTMLTextAreaElement.prototype, "value").set;
+                nativeSetter.call(textarea, q);
+                textarea.dispatchEvent(new Event('input', { bubbles: true }));
+                
+                setTimeout(() => {
+                    const sendBtn = pdoc.querySelector('.stChatInputContainer button');
+                    if (sendBtn) {
+                        sendBtn.click();
+                    }
+                }, 150);
+            }
+        });
+    });
+})();
+</script>
+"""
+components.html(interactive_js, height=0)
+
 # ----------------- شريط السؤال السفلي -----------------
-edit_placeholder = "اسأل Gemini عن أي معلومة في بياناتك ✦"
-if "edit_draft" in st.session_state:
-    st.info(f"✏️ جارٍ تعديل السؤال: {st.session_state.edit_draft}")
+user_input = st.chat_input(placeholder="اسأل Gemini عن أي معلومة في بياناتك ✦")
 
-user_input = st.chat_input(placeholder=edit_placeholder)
-
-active_prompt = None
 if user_input:
-    active_prompt = user_input
-    if "edit_draft" in st.session_state:
-        del st.session_state.edit_draft
-elif "pending_run" in st.session_state:
-    active_prompt = st.session_state.pending_run
-    del st.session_state.pending_run
-
-if active_prompt:
     current_time_str = datetime.now().strftime("%I:%M %p").replace("AM", "ص").replace("PM", "م")
     
     st.session_state.messages.append({
         "id": len(st.session_state.messages),
         "role": "user",
-        "content": active_prompt,
+        "content": user_input,
         "time": current_time_str
     })
 
@@ -418,7 +511,7 @@ if active_prompt:
             "latency": 0.0,
             "chart": None,
             "mindmap": None,
-            "raw_query": active_prompt
+            "raw_query": user_input
         })
         st.rerun()
     else:
@@ -444,7 +537,7 @@ if active_prompt:
 المحادثة السابقة:
 {history_text}
 
-سؤال المستخدم: "{active_prompt}"
+سؤال المستخدم: "{user_input}"
 
 قواعد التلوين:
 - أي اسم عمود أو بند: ضعه بين [[اسم البند]] (سيتحول تلقائياً إلى اللون الأزرق السماوي).
@@ -468,7 +561,7 @@ if active_prompt:
                     "latency": latency,
                     "chart": parsed.get("chart") if parsed.get("chart", {}).get("has_chart") else None,
                     "mindmap": parsed.get("mindmap") if parsed.get("mindmap", {}).get("has_mindmap") else None,
-                    "raw_query": active_prompt
+                    "raw_query": user_input
                 })
 
             except Exception as e:
@@ -480,7 +573,7 @@ if active_prompt:
                     "latency": 0.0,
                     "chart": None,
                     "mindmap": None,
-                    "raw_query": active_prompt
+                    "raw_query": user_input
                 })
 
         st.rerun()
