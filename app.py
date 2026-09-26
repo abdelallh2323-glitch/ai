@@ -8,15 +8,15 @@ from datetime import datetime
 import streamlit.components.v1 as components
 import plotly.express as px
 
-# إعداد الصفحة لتطابق واجهة Gemini
+# إعداد الصفحة العامة
 st.set_page_config(
-    page_title="Gemini",
+    page_title="Gemini Data AI",
     page_icon="✦",
     layout="centered",
     initial_sidebar_state="collapsed"
 )
 
-# ----------------- تصميم مطابق تماماً لـ Google Gemini -----------------
+# ----------------- تصميم Gemini الراقي بالأيقونات المتجهية (SVG) وبدون إيموجي شعبي -----------------
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700&family=Google+Sans:wght@400;500;700&display=swap');
@@ -33,13 +33,36 @@ st.markdown("""
     .main .block-container {
         max-width: 740px !important;
         padding-top: 1.5rem !important;
-        padding-bottom: 7rem !important;
+        padding-bottom: 7.5rem !important;
         padding-left: 1rem !important;
         padding-right: 1rem !important;
         margin: 0 auto !important;
     }
 
-    /* كبسولة رسالة المستخدم */
+    /* شريط علوي أنيق وديناميكي يوضح الملف الفعال */
+    .top-meta-bar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 8px 12px;
+        background: #1e1f20;
+        border-radius: 16px;
+        margin-bottom: 22px;
+        direction: rtl;
+        font-size: 13px;
+        color: #c4c7c5;
+        border: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .active-file-tag {
+        color: #a8c7fa;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    /* رسائل المستخدم */
     .chat-row-user {
         display: flex;
         justify-content: flex-start;
@@ -50,7 +73,7 @@ st.markdown("""
     .gemini-user-pill {
         background-color: #282a2c;
         color: #e3e3e3;
-        border-radius: 24px;
+        border-radius: 22px;
         padding: 10px 20px;
         font-size: 15px;
         font-weight: 500;
@@ -59,14 +82,14 @@ st.markdown("""
         text-align: right;
         display: inline-block;
         max-width: 85%;
-        box-shadow: 0 1px 4px rgba(0,0,0,0.25);
+        box-shadow: 0 1px 3px rgba(0,0,0,0.3);
     }
 
-    /* رد الذكاء الاصطناعي بنمط Gemini الحر */
+    /* إجابة الذكاء الاصطناعي بنمط نصي حر وناعم */
     .gemini-ai-container {
         direction: rtl;
         text-align: right;
-        margin-bottom: 30px;
+        margin-bottom: 28px;
         color: #e3e3e3;
         font-size: 15.5px;
         line-height: 1.85;
@@ -79,6 +102,7 @@ st.markdown("""
         margin-bottom: 10px;
     }
 
+    /* التمييز اللوني الراقي بدون بهرجة */
     .item-highlight {
         color: #a8c7fa !important;
         font-weight: 700;
@@ -92,39 +116,42 @@ st.markdown("""
         display: inline-block;
     }
 
-    /* شريط أدوات Gemini الخفيف */
+    /* شريط الأيقونات الراقي (SVG Icons) */
     .gemini-actions {
         display: flex;
         align-items: center;
-        gap: 12px;
-        margin-top: 8px;
+        gap: 8px;
+        margin-top: 10px;
         direction: ltr;
         justify-content: flex-end;
     }
 
-    .gemini-icon-btn {
+    .svg-icon-btn {
         background: transparent;
         border: none;
         color: #8e918f;
         cursor: pointer;
-        padding: 4px;
-        border-radius: 50%;
+        padding: 6px;
+        border-radius: 8px;
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 14px;
-        transition: color 0.2s;
+        transition: all 0.2s ease;
     }
 
-    .gemini-icon-btn:hover { color: #e3e3e3; }
+    .svg-icon-btn:hover {
+        color: #e3e3e3;
+        background: rgba(255, 255, 255, 0.08);
+    }
 
     .latency-pill {
         font-size: 11px;
         color: #8e918f;
-        margin-right: 4px;
+        margin-right: 6px;
+        font-family: sans-serif;
     }
 
-    /* صندوق الإدخال العائم */
+    /* صندوق الإدخال المثبت في الأسفل بنمط Gemini */
     .stChatInputContainer {
         position: fixed !important;
         bottom: 18px !important;
@@ -144,15 +171,27 @@ st.markdown("""
         font-size: 15px !important;
         padding: 14px 22px !important;
         direction: rtl !important;
-        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4) !important;
+        box-shadow: 0 4px 24px rgba(0, 0, 0, 0.5) !important;
     }
 
+    .stChatInputContainer textarea:focus {
+        border-color: rgba(255, 255, 255, 0.2) !important;
+    }
+
+    /* القائمة الجانبية (سهم الإعدادات) */
     section[data-testid="stSidebar"] {
         background-color: #1e1f20 !important;
         border-left: 1px solid rgba(255, 255, 255, 0.08) !important;
     }
 </style>
 """, unsafe_allow_html=True)
+
+# ----------------- أيقونات SVG مرسومة فائقة الدقة -----------------
+SVG_COPY = '''<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>'''
+SVG_REGEN = '''<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/></svg>'''
+SVG_EDIT = '''<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>'''
+SVG_SPARKLE = '''<svg width="16" height="16" viewBox="0 0 24 24" fill="#a8c7fa"><path d="M12 2L14.5 9.5L22 12L14.5 14.5L12 22L9.5 14.5L2 12L9.5 9.5L12 2Z"/></svg>'''
+SVG_DATABASE = '''<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#a8c7fa" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"></ellipse><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path></svg>'''
 
 # ----------------- دوال التنسيق -----------------
 def apply_gemini_styling(text):
@@ -171,15 +210,15 @@ def parse_safe_json(raw_text):
     except Exception: pass
 
     try:
-        ans_match = re.search(r'"answer_arabic"\s*:\s*"(.*?)"\s*,\s*"speech_summary"', clean, re.DOTALL)
+        ans_match = re.search(r'"answer_arabic"\s*:\s*"(.*?)"(\s*,\s*"|\s*})', clean, re.DOTALL)
         if ans_match:
             ans = ans_match.group(1).replace('\\"', '"').replace('\\n', '\n')
-            return {"answer_arabic": ans, "speech_summary": ans[:80], "chart": None, "mindmap": None}
+            return {"answer_arabic": ans, "chart": None, "mindmap": None}
     except Exception: pass
 
-    return {"answer_arabic": clean, "speech_summary": clean[:80], "chart": None, "mindmap": None}
+    return {"answer_arabic": clean, "chart": None, "mindmap": None}
 
-# ----------------- دالة الاتصال بـ Google Gemini -----------------
+# ----------------- محرك الاتصال بـ Google Gemini -----------------
 def generate_ai_response(prompt_text, user_api_key):
     from google import genai
     client = genai.Client(api_key=user_api_key)
@@ -197,33 +236,17 @@ def generate_ai_response(prompt_text, user_api_key):
             continue
     raise Exception(f"خطأ في الاتصال: {last_err}")
 
-# ----------------- قراءة ميزانية الإمارات -----------------
+# ----------------- إدارة الملفات ديناميكياً (أي ملف إكسل أو CSV) -----------------
 df = None
 all_sheets = {}
-default_files = ["ميزانيه السفر للامارات.xlsx", "budget_uae.xlsx", "sample_data.csv"]
+active_file_name = "لا يوجد ملف محدد"
 
-for fname in default_files:
-    if os.path.exists(fname):
-        try:
-            if fname.endswith('.csv'):
-                df = pd.read_csv(fname)
-                all_sheets["الرئيسية"] = df
-            else:
-                xl = pd.ExcelFile(fname)
-                for s in xl.sheet_names:
-                    all_sheets[s] = pd.read_excel(fname, sheet_name=s)
-                df = all_sheets[xl.sheet_names[0]]
-            break
-        except Exception:
-            continue
-
-# ----------------- إدارة المفتاح والجلسة بأمان -----------------
+# 1. فحص القائمة الجانبية إذا قام المستخدم برفع ملف جديد
 if "api_key" not in st.session_state:
     st.session_state.api_key = st.secrets.get("GEMINI_API_KEY", "")
 
-# القائمة الجانبية (سهم الإعدادات)
 with st.sidebar:
-    st.markdown("### ⚙️ إعدادات Gemini والبيانات")
+    st.markdown("### ⚙️ إعدادات Gemini والملفات")
     input_key = st.text_input(
         "مفتاح Google Gemini API Key:",
         value=st.session_state.api_key,
@@ -235,114 +258,126 @@ with st.sidebar:
         st.success("✅ تم حفظ المفتاح")
         
     st.markdown("---")
-    if df is not None:
-        st.markdown(f"**📊 ملف ميزانية الإمارات ({len(df)} بند):**")
-        st.dataframe(df, use_container_width=True)
-        
-    if st.button("🗑️ مسح المحادثة"):
-        st.session_state.messages = [st.session_state.messages[0]]
+    st.markdown("### 📁 إدارة مصادر البيانات")
+    uploaded_file = st.file_uploader("ارفع أي ملف Excel أو CSV:", type=["xlsx", "xls", "csv"])
+    
+    if st.button("🗑️ مسح المحادثة بالكامل"):
+        st.session_state.messages = []
         st.rerun()
+
+# تحديد مصدر البيانات إما المرفوع حديثاً أو ملفات المجلد
+if uploaded_file is not None:
+    try:
+        active_file_name = uploaded_file.name
+        if uploaded_file.name.endswith('.csv'):
+            df = pd.read_csv(uploaded_file)
+            all_sheets["البيانات"] = df
+        else:
+            xl = pd.ExcelFile(uploaded_file)
+            for s in xl.sheet_names:
+                all_sheets[s] = pd.read_excel(uploaded_file, sheet_name=s)
+            df = all_sheets[xl.sheet_names[0]]
+    except Exception as e:
+        st.sidebar.error(f"خطأ في قراءة الملف: {e}")
+else:
+    # البحث التلقائي عن أي ملف إكسل موجود في المشروع
+    available_files = [f for f in os.listdir(".") if f.endswith(('.xlsx', '.csv')) and not f.startswith('.')]
+    if available_files:
+        chosen_file = available_files[0]
+        # إعطاء أولوية لأي ملف إكسل متاح
+        active_file_name = chosen_file
+        try:
+            if chosen_file.endswith('.csv'):
+                df = pd.read_csv(chosen_file)
+                all_sheets["البيانات"] = df
+            else:
+                xl = pd.ExcelFile(chosen_file)
+                for s in xl.sheet_names:
+                    all_sheets[s] = pd.read_excel(chosen_file, sheet_name=s)
+                df = all_sheets[xl.sheet_names[0]]
+        except Exception:
+            pass
+
+# عرض عينة الجدول داخل القائمة الجانبية
+with st.sidebar:
+    if df is not None:
+        st.markdown(f"**البيانات النشطة: {active_file_name}** ({len(df)} صف)")
+        st.dataframe(df.head(10), use_container_width=True)
 
 # ----------------- تهيئة ذاكرة الشات -----------------
 if "messages" not in st.session_state:
-    st.session_state.messages = [
-        {
-            "id": 0,
-            "role": "assistant",
-            "content": apply_gemini_styling("""أهلاً بك! تم ربط [[ميزانية السفر للإمارات]] بالكامل.
-يمكنك سؤالي عن أي مقارنة، تفاصيل التكاليف، أو خطط التوفير:
-- تظهر [[أسماء البنود]] بلون أزرق خفيف.
-- وتظهر {{المعادلات والأرقام}} بلون أخضر هادئ."""),
-            "speech": "أهلاً بك! تم ربط ميزانية السفر للإمارات. اسألني عن أي بند وسأحسبه لك فوراً.",
-            "latency": 0.4,
-            "chart": None,
-            "mindmap": None,
-            "raw_query": None
-        }
-    ]
+    st.session_state.messages = []
 
-# ----------------- ودجت الصوت النحيف -----------------
-voice_widget = """
-<div style="direction: rtl; text-align: center; margin-bottom: 16px;">
-    <button id="micBtn" onclick="toggleMic()" style="
-        background: #1e1f20;
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        color: #c4c7c5;
-        border-radius: 20px;
-        padding: 5px 14px;
-        font-size: 13px;
-        font-family: 'Cairo', sans-serif;
-        cursor: pointer;
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-    ">
-        <span>🎙️</span>
-        <span id="micLabel">تحدث بالصوت</span>
-    </button>
-    <span id="micStatus" style="color: #8e918f; font-size: 12px; margin-right: 8px;"></span>
+# إذا كانت المحادثة فارغة، عرض رسالة ترحيبية ذكية ومتكيفة مع اسم الملف
+if len(st.session_state.messages) == 0:
+    welcome_text = apply_gemini_styling(f"""أهلاً بك! أنا **Gemini**، محلل البيانات الذكي.
+تم ربط ملف [[{active_file_name}]] بنجاح.
+اسألني عن أي تفاصيل، تحليلات، مقارنات إحصائية، أو خطط عمل واستراتيجيات مبنية على بياناتك.""")
+    st.session_state.messages.append({
+        "id": 0,
+        "role": "assistant",
+        "content": welcome_text,
+        "latency": 0.3,
+        "chart": None,
+        "mindmap": None,
+        "raw_query": None
+    })
+
+# ----------------- شريط الحالة العلوي النظيف -----------------
+st.markdown(f"""
+<div class="top-meta-bar">
+    <div class="active-file-tag">
+        {SVG_DATABASE}
+        <span>الملف الحالي: {active_file_name}</span>
+    </div>
+    <div style="display: flex; align-items: center; gap: 6px; font-size: 12px; color: #8e918f;">
+        <span>{len(df) if df is not None else 0} صف</span>
+        <span>•</span>
+        <span>{SVG_SPARKLE} Gemini</span>
+    </div>
 </div>
-<script>
-    let rec = null, isR = false;
-    if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
-        const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-        rec = new SR(); rec.lang = 'ar-SA';
-        rec.onstart = () => { document.getElementById('micLabel').innerText = 'نسمع صوتك...'; };
-        rec.onresult = (e) => {
-            navigator.clipboard.writeText(e.results[0][0].transcript);
-            document.getElementById('micStatus').innerText = 'تم نسخ كلامك للصقه في الشات ✓';
-        };
-        rec.onend = () => { document.getElementById('micLabel').innerText = 'تحدث بالصوت'; };
-    }
-    function toggleMic() {
-        if (!rec) { alert('المتصفح لا يدعم المايك'); return; }
-        if (!isR) { rec.start(); isR = true; } else { rec.stop(); isR = false; }
-    }
-</script>
-"""
-components.html(voice_widget, height=36)
+""", unsafe_allow_html=True)
 
 # ----------------- عرض رسائل الشات -----------------
 for idx, msg in enumerate(st.session_state.messages):
     msg_id = msg.get("id", idx)
 
     if msg["role"] == "user":
+        u_content = msg['content']
         st.markdown(f"""
         <div class="chat-row-user">
             <div class="gemini-user-pill">
-                {msg['content']}
+                {u_content}
             </div>
         </div>
         """, unsafe_allow_html=True)
     else:
         clean_text_copy = json.dumps(re.sub(r'<.*?>', '', msg['content']))
         latency_val = msg.get('latency', 0.5)
+        raw_q = msg.get('raw_query', '')
 
         st.markdown(f"""
         <div class="gemini-ai-container">
             <div class="gemini-ai-text">{msg['content']}</div>
             <div class="gemini-actions">
                 <span class="latency-pill">{latency_val}s</span>
-                <button class="gemini-icon-btn" onclick='navigator.clipboard.writeText({clean_text_copy}); this.innerText="✓";' title="نسخ">📋</button>
-                <button class="gemini-icon-btn" onclick='speak_{msg_id}()' title="استماع">🔊</button>
+                <button class="svg-icon-btn" onclick='navigator.clipboard.writeText({clean_text_copy}); this.innerHTML="✓";' title="نسخ">{SVG_COPY}</button>
             </div>
         </div>
         """, unsafe_allow_html=True)
 
-        if msg.get("speech"):
-            spk_str = json.dumps(re.sub(r'<.*?>', '', msg["speech"]))
-            components.html(f"""
-            <script>
-                function speak_{msg_id}() {{
-                    if ('speechSynthesis' in window) {{
-                        window.speechSynthesis.cancel();
-                        const u = new SpeechSynthesisUtterance({spk_str});
-                        u.lang = 'ar-SA';
-                        window.speechSynthesis.speak(u);
-                    }}
-                }}
-            </script>
-            """, height=0)
+        # زر إعادة الرد وزر تعديل السؤال بأيقونات راقية
+        if raw_q:
+            c_r1, c_r2, _ = st.columns([1.5, 1.5, 7])
+            with c_r1:
+                if st.button("🔄 إعادة الرد", key=f"btn_regen_{msg_id}"):
+                    st.session_state.trigger_query = raw_q
+                    st.session_state.messages = [m for m in st.session_state.messages if m.get("id") != msg_id]
+                    st.rerun()
+            with c_r2:
+                if st.button("✏️ تحرير السؤال", key=f"btn_edit_{msg_id}"):
+                    st.session_state.edit_draft = raw_q
+                    st.rerun()
 
         # الرسم البياني
         if msg.get("chart") and df is not None:
@@ -358,7 +393,7 @@ for idx, msg in enumerate(st.session_state.messages):
         if msg.get("mindmap") and msg["mindmap"].get("mermaid_code"):
             mcode = msg["mindmap"]["mermaid_code"]
             components.html(f"""
-            <div style="direction: ltr; background: #1e1f20; border-radius: 12px; padding: 10px; margin-bottom: 20px; text-align: center;">
+            <div style="direction: ltr; background: #1e1f20; border-radius: 12px; padding: 12px; margin-bottom: 20px; text-align: center;">
                 <pre class="mermaid" style="background: transparent;">{mcode}</pre>
             </div>
             <script type="module">
@@ -367,39 +402,50 @@ for idx, msg in enumerate(st.session_state.messages):
             </script>
             """, height=280)
 
-# ----------------- استقبال وتوليد الرد فوراً بدون توقف -----------------
-user_input = st.chat_input("اسأل Gemini عن ميزانية السفر للإمارات ✦")
+# ----------------- شريط السؤال السفلي مع زر الإرسال المدمج -----------------
+# استعادة السؤال عند الضغط على "تحرير السؤال"
+default_placeholder = "اسأل Gemini عن أي معلومة في بياناتك ✦"
+if "edit_draft" in st.session_state:
+    st.info(f"✏️ جاري تحرير سؤالك: {st.session_state.edit_draft}")
 
+user_input = st.chat_input(placeholder=default_placeholder)
+
+active_prompt = None
 if user_input:
-    # 1. إضافة سؤال المستخدم فوراً للذاكرة
+    active_prompt = user_input
+    if "edit_draft" in st.session_state:
+        del st.session_state.edit_draft
+elif "trigger_query" in st.session_state:
+    active_prompt = st.session_state.trigger_query
+    del st.session_state.trigger_query
+
+if active_prompt:
     st.session_state.messages.append({
         "id": len(st.session_state.messages),
         "role": "user",
-        "content": user_input
+        "content": active_prompt
     })
 
-    # 2. التحقق من وجود مفتاح الـ API
     if not st.session_state.api_key:
         st.session_state.messages.append({
             "id": len(st.session_state.messages),
             "role": "assistant",
-            "content": "⚠️ يرجى إدخال مفتاح الـ API من سهم الإعدادات الجانبي للبدء في الإجابة.",
-            "speech": "يرجى إدخال مفتاح الـ API من سهم الإعدادات الجانبي.",
+            "content": "⚠️ يرجى إدخال مفتاح Google Gemini API Key من سهم الإعدادات الجانبي أولاً للبدء.",
             "latency": 0.0,
             "chart": None,
             "mindmap": None,
-            "raw_query": user_input
+            "raw_query": active_prompt
         })
         st.rerun()
     else:
-        # 3. استدعاء الذكاء الاصطناعي مباشرة دون Rerun مسبق يضيع الإدخال
         with st.spinner("..."):
             try:
+                # تلخيص بيانات الملف الفعال بدقة أياً كان نوعه (ميزانية، مبيعات، موظفين...)
                 summary_parts = []
-                for s, sdf in all_sheets.items():
-                    summary_parts.append(f"ورقة: {s}\nالأعمدة: {list(sdf.columns)}\n{sdf.to_string()}")
-                    num_c = sdf.select_dtypes(include=['number']).columns.tolist()
-                    if num_c: summary_parts.append(f"مجموع: {sdf[num_c].sum().to_string()}")
+                for s_name, s_df in all_sheets.items():
+                    summary_parts.append(f"ورقة/جدول: {s_name}\nالأعمدة: {list(s_df.columns)}\nعينة من البيانات:\n{s_df.head(15).to_string()}")
+                    num_c = s_df.select_dtypes(include=['number']).columns.tolist()
+                    if num_c: summary_parts.append(f"إجماليات وإحصائيات:\n{s_df[num_c].describe().to_string()}")
                 data_summary = "\n\n".join(summary_parts)
 
                 hist = []
@@ -408,23 +454,22 @@ if user_input:
                 history_text = "\n".join(hist)
 
                 prompt = f"""
-أنت Gemini، مساعد ذكي ومحلل لميزانية السفر للإمارات.
-بيانات الميزانية:
+أنت Gemini، مساعد ذكي ومحلل بيانات محترف متخصص في قراءة وتحليل أي جدول بيانات.
+البيانات المتاحة من ملف ({active_file_name}):
 {data_summary}
 
 المحادثة السابقة:
 {history_text}
 
-السؤال: "{user_input}"
+سؤال المستخدم: "{active_prompt}"
 
 قواعد التلوين:
-- أي اسم بند أو عمود: ضعه بين [[اسم البند]] (سيصبح أزرق).
-- أي رقم أو معادلة: ضعه بين {{{{الرقم أو المعادلة}}}} (سيصبح أخضر).
+- أي اسم عمود أو بند: ضعه بين [[اسم البند]] (سيتحول تلقائياً إلى اللون الأزرق السماوي).
+- أي رقم أو حساب مالي: ضعه بين {{{{الرقم أو المعادلة}}}} (سيتحول تلقائياً إلى اللون الأخضر الهادئ).
 
-أجب حصراً بـ JSON نظيف:
+أجب حصراً بصيغة JSON نظيفة بدون أي نص خارجي:
 {{
-    "answer_arabic": "الإجابة التلقائية المباشرة كشات Gemini مع [[البنود]] و {{{{الأرقام}}}}.",
-    "speech_summary": "ملخص صوتي قصير جداً سطر واحد.",
+    "answer_arabic": "الإجابة التلقائية المباشرة بأسلوب شات Gemini مع [[البنود]] و {{{{الأرقام}}}}.",
     "chart": {{ "has_chart": false, "type": "bar", "title": "", "x_col": "", "y_col": "" }},
     "mindmap": {{ "has_mindmap": false, "mermaid_code": "" }}
 }}
@@ -436,11 +481,10 @@ if user_input:
                     "id": len(st.session_state.messages),
                     "role": "assistant",
                     "content": apply_gemini_styling(parsed.get("answer_arabic", "")),
-                    "speech": parsed.get("speech_summary", ""),
                     "latency": latency,
                     "chart": parsed.get("chart") if parsed.get("chart", {}).get("has_chart") else None,
                     "mindmap": parsed.get("mindmap") if parsed.get("mindmap", {}).get("has_mindmap") else None,
-                    "raw_query": user_input
+                    "raw_query": active_prompt
                 })
 
             except Exception as e:
@@ -448,12 +492,10 @@ if user_input:
                     "id": len(st.session_state.messages),
                     "role": "assistant",
                     "content": f"حدث خطأ أثناء معالجة السؤال: {e}",
-                    "speech": "",
                     "latency": 0.0,
                     "chart": None,
                     "mindmap": None,
-                    "raw_query": user_input
+                    "raw_query": active_prompt
                 })
 
-        # 4. تحديث الصفحة بعد اكتمال الإجابة لعرضها فوراً
         st.rerun()
