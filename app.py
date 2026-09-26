@@ -163,6 +163,23 @@ st.markdown("""
         font-family: 'Cairo', sans-serif;
     }
 
+    /* شارة اسم النموذج بنمط Gemini الراقي */
+    .gemini-model-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        background: rgba(168, 199, 250, 0.08);
+        color: #a8c7fa;
+        border: 1px solid rgba(168, 199, 250, 0.22);
+        border-radius: 12px;
+        padding: 2px 9px;
+        font-size: 11.5px;
+        font-weight: 500;
+        font-family: 'Google Sans', 'Cairo', sans-serif;
+        letter-spacing: 0.2px;
+        user-select: none;
+    }
+
     .action-icons-group {
         display: inline-flex;
         align-items: center;
@@ -281,6 +298,15 @@ def parse_safe_json(raw_text):
 
     return {"answer_arabic": clean, "chart": None, "mindmap": None}
 
+def format_display_model(raw_name):
+    if not raw_name:
+        return "Gemini"
+    clean = raw_name.replace("models/", "").strip()
+    parts = clean.split("-")
+    if parts[0].lower() == "gemini":
+        return " ".join([p.capitalize() if not p.replace(".", "").isdigit() else p for p in parts])
+    return clean
+
 # ----------------- محرك الاتصال بـ Google Gemini -----------------
 def generate_ai_response(prompt_text, user_api_key):
     from google import genai
@@ -311,7 +337,7 @@ def generate_ai_response(prompt_text, user_api_key):
             t0 = time.time()
             resp = client.models.generate_content(model=model_name, contents=prompt_text)
             if resp and resp.text:
-                return resp.text, round(time.time() - t0, 1)
+                return resp.text, round(time.time() - t0, 1), model_name
         except Exception as err:
             errors.append(f"[{model_name}: {err}]")
             continue
@@ -401,6 +427,7 @@ if "messages" not in st.session_state or len(st.session_state.messages) == 0:
             "content": welcome_msg,
             "time": now_time,
             "latency": 0.3,
+            "model": "gemini-2.5-flash",
             "chart": None,
             "mindmap": None,
             "raw_query": None
@@ -452,9 +479,16 @@ for idx, msg in enumerate(st.session_state.messages):
             b64_q = base64.b64encode(raw_q.encode('utf-8')).decode('utf-8')
             regen_btn_html = f'<button type="button" class="gemini-svg-btn gemini-regen-btn" data-query-b64="{b64_q}" title="إعادة بناء الرد">{SVG_REGEN}</button>'
 
-        # 3. شريط الإجراءات والوقت منفصل تماماً
+        # 3. شريط الإجراءات والوقت وشارة اسم النموذج اللطيفة
+        model_name = msg.get("model", "")
+        model_badge_html = ""
+        if model_name:
+            disp_model = format_display_model(model_name)
+            model_badge_html = f'<span class="gemini-model-badge" title="النموذج: {model_name}">✦ {disp_model}</span>'
+
         action_bar_html = (
             f'<div class="action-bar-container">'
+            f'{model_badge_html}'
             f'<span class="meta-time-text">{ai_time} • {latency_val} ثانية</span>'
             f'<div class="action-icons-group">'
             f'<button type="button" class="gemini-svg-btn gemini-copy-btn" data-target="ai_text_{msg_id}" title="نسخ الإجابة">{SVG_COPY}</button>'
@@ -735,7 +769,7 @@ if user_input:
     "mindmap": {{ "has_mindmap": false, "mermaid_code": "" }}
 }}
 """
-                raw_ans, latency = generate_ai_response(prompt, st.session_state.api_key)
+                raw_ans, latency, used_model = generate_ai_response(prompt, st.session_state.api_key)
                 parsed = parse_safe_json(raw_ans)
 
                 st.session_state.messages.append({
@@ -744,6 +778,7 @@ if user_input:
                     "content": apply_gemini_styling(parsed.get("answer_arabic", "")),
                     "time": datetime.now().strftime("%I:%M %p").replace("AM", "ص").replace("PM", "م"),
                     "latency": latency,
+                    "model": used_model,
                     "chart": parsed.get("chart") if parsed.get("chart", {}).get("has_chart") else None,
                     "mindmap": parsed.get("mindmap") if parsed.get("mindmap", {}).get("has_mindmap") else None,
                     "raw_query": user_input
